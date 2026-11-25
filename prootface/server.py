@@ -3,7 +3,6 @@
 from dataclasses import asdict
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
-import math
 import mimetypes
 from pathlib import Path
 import socket
@@ -14,7 +13,9 @@ from urllib.parse import urlsplit
 from .calibration import CalibrationSession, Profile
 from .model import Animator, NEUTRAL, Style, demo_controls, pose_from_controls, retarget
 from .openseeface import decode_packet
-from .timing import ANIMATION_FPS,FRAME_SECONDS
+from .timing import ANIMATION_FPS, FRAME_SECONDS
+
+TRACKING_TIMEOUT = 0.25
 
 WEB = Path(__file__).parent / "web"
 
@@ -55,18 +56,25 @@ class Application:
         with self.lock:
             if m.face_id == self.face_id:
                 self.received += 1
-                if m.valid:
+                if m.valid and (self.latest is None or m.received_at >= self.latest.received_at):
+                    if self.latest is None or m.received_at - self.latest.received_at > TRACKING_TIMEOUT:
+                        self.contact_pending = False
+                        self.measurement_contact = True
                     self.latest = m
-                    if self.mode == 'live':
-                        contact=retarget(m,self.profile)['seal']>=.98
-                        if contact and not self.measurement_contact:self.contact_pending=True
-                        self.measurement_contact=contact
-                        self.session.add(m.signals(),m.aperture_ratio)
+                    if self.mode == "live":
+                        contact = retarget(m, self.profile)["seal"] >= .98
+                        if contact and not self.measurement_contact:
+                            self.contact_pending = True
+                        self.measurement_contact = contact
+                        self.session.add(m.signals(), m.aperture_ratio)
 
     def tick(self, now: float):
         with self.lock:
             age = now - self.latest.received_at if self.latest else None
-            fresh = age is not None and age <= 0.25
+            fresh = age is not None and 0 <= age <= TRACKING_TIMEOUT
+            if not fresh:
+                self.contact_pending = False
+                self.measurement_contact = True
             label = "Manual character controls"
             target = self.manual
             active = True
@@ -76,8 +84,8 @@ class Application:
                 label = "OpenSeeFace live" if fresh else "Tracking unavailable — easing to rest"
                 target = retarget(self.latest, self.profile) if fresh else NEUTRAL
                 if fresh and self.contact_pending:
-                    target={**target,'seal':1}
-                    self.contact_pending=False
+                    target = {**target, "seal": 1}
+                    self.contact_pending = False
                 active = fresh
             pose = self.animator.step(target, now, active)
             self.sequence += 1
@@ -93,47 +101,51 @@ class Application:
             )
 
     def command(self, path: str, data: dict):
+        """Apply one validated command; invalid commands leave state unchanged."""
+        if not isinstance(data, dict):
+            raise ValueError("Expected command object")
         with self.lock:
             if path == "/api/control":
                 mode = data.get("mode", self.mode)
                 if mode not in ("manual", "live", "demo"):
                     raise ValueError("Unknown mode")
-                proposed = {**self.manual, **data.get("controls", {})}
+                controls = data.get("controls", {})
+                if not isinstance(controls, dict):
+                    raise ValueError("Expected controls object")
+                proposed = {**self.manual, **controls}
                 if any(k not in NEUTRAL for k in proposed):
                     raise ValueError("Unknown control")
                 pose_from_controls(proposed, self.animator.style)
                 self.manual = {k: float(proposed[k]) for k in NEUTRAL}
+                if mode != self.mode or mode != "live":
+                    self.contact_pending = False
+                    self.measurement_contact = True
                 self.mode = mode
-                if mode!='live':self.contact_pending=False
             elif path == "/api/style":
-                allowed = {
-                    "max_jaw_angle": (.1, .65), "recession": (0, .35),
-                    "opening_gamma": (.6, 2), "max_corner_lift": (0, .35),
-                    "asymmetry": (0, 1), "v_depth": (.02, .30),
-                    "v_position": (.65, .92), "v_width": (.02, .10),
-                    "lip_thickness": (.005, .04),
-                    "pose_contrast": (1,4),
-                    "opening_contrast": (1,4),"key_pose_strength": (0,1),"accent_gain": (0,.5),
-                    "front_motion_scale": (0,1),
-                    "rounding_reach": (0,1),"lower_lip_spike": (0,1),
-                }
                 proposed = asdict(self.animator.style)
                 for k, v in data.items():
-                    if k not in allowed or not isinstance(v, (float, int)):
+                    if k not in proposed:
                         raise ValueError("Unknown style parameter")
-                    if not math.isfinite(v) or not allowed[k][0] <= v <= allowed[k][1]:
-                        raise ValueError("Style parameter outside safe geometric bounds")
                     proposed[k] = v
                 self.animator.style = Style(**proposed)
             elif path == "/api/calibration/start":
+                self.session.begin(data.get("stage"))
                 self.mode = "live"
-                self.session.begin(data["stage"])
+                self.contact_pending = False
+                self.measurement_contact = True
             elif path == "/api/calibration/stop":
                 self.session.stage = None
             elif path == "/api/calibration/save":
+                previous_stage = self.session.stage
                 profile = self.session.finish()
-                profile.save(self.profile_path)
+                try:
+                    profile.save(self.profile_path)
+                except OSError:
+                    self.session.stage = previous_stage
+                    raise
                 self.profile = profile
+                self.contact_pending = False
+                self.measurement_contact = True
             else:
                 raise ValueError("Unknown command")
 
@@ -165,7 +177,8 @@ def make_http_server(app, host, port, character_path):
                 self.respond(200, character.read_bytes() if character.is_file() else b'null')
             elif path == "/api/state":
                 with app.lock:
-                    self.respond(200, json.dumps(app.snapshot))
+                    body = json.dumps(app.snapshot)
+                self.respond(200, body)
             elif path == "/api/events":
                 self.send_response(200)
                 self.send_header("Content-Type", "text/event-stream")
@@ -208,6 +221,8 @@ def make_http_server(app, host, port, character_path):
                 self.respond(200, '{"ok":true}')
             except (ValueError, KeyError, TypeError) as exc:
                 self.respond(400, json.dumps({"error": str(exc)}))
+            except OSError:
+                self.respond(500, '{"error":"Could not persist calibration profile"}')
 
     server = ThreadingHTTPServer((host, port), Handler)
     server.daemon_threads = True

@@ -46,14 +46,20 @@ class Measurement:
 def observation(*, received_at, sender_time, face_id, resolution, right_eye,
                 left_eye, success, confidence, xy, features) -> Measurement:
     """Common validation/aperture rules for wire input and decoded ROS data."""
-    numbers = [received_at, sender_time, face_id, *resolution, right_eye, left_eye,
-               *confidence, *(v for point in xy for v in point),
-               *(features[k] for k in FEATURES)]
-    if not all(math.isfinite(v) for v in numbers):
-        raise ValueError('Non-finite OpenSeeFace observation')
-    if (len(resolution)!=2 or min(resolution)<=0 or face_id<0 or int(face_id)!=face_id
-            or len(confidence)!=68 or len(xy)!=68 or any(len(p)!=2 for p in xy)):
-        raise ValueError('Invalid OpenSeeFace observation shape')
+    try:
+        if (len(resolution) != 2 or len(confidence) != 68 or len(xy) != 68
+                or any(len(point) != 2 for point in xy)):
+            raise ValueError('Invalid OpenSeeFace observation shape')
+        numbers = [received_at, sender_time, face_id, *resolution, right_eye, left_eye,
+                   *confidence, *(v for point in xy for v in point),
+                   *(features[k] for k in FEATURES)]
+        if not all(math.isfinite(v) for v in numbers):
+            raise ValueError('Non-finite OpenSeeFace observation')
+        if (min(resolution) <= 0 or isinstance(face_id, bool) or face_id < 0
+                or int(face_id) != face_id or success not in (False, True)):
+            raise ValueError('Invalid OpenSeeFace observation header')
+    except (KeyError, TypeError, OverflowError) as exc:
+        raise ValueError('Malformed OpenSeeFace observation') from exc
     mouth_conf = min(confidence[i] for i in range(58,66))
     span = math.dist(xy[58],xy[62])
     aperture = None

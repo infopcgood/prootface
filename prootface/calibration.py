@@ -48,18 +48,29 @@ class Profile:
     calibrated: bool = False
     schema_version: int = 1
 
+    def __post_init__(self):
+        if self.schema_version != 1:
+            raise ValueError("Unsupported calibration schema")
+        if (set(self.ranges) != set(SIGNALS)
+                or not all(isinstance(v, Range) for v in self.ranges.values())):
+            raise ValueError("Calibration needs one Range per signal")
+        if (not all(math.isfinite(x) for x in (self.closed_aperture, self.open_aperture))
+                or not 0 <= self.closed_aperture < self.open_aperture):
+            raise ValueError("Invalid aperture calibration")
+
     def to_dict(self) -> dict:
         return asdict(self)
 
     @classmethod
     def from_dict(cls, data: dict) -> "Profile":
-        if data.get("schema_version") != 1:
-            raise ValueError("Unsupported calibration schema")
-        ranges = {k: Range(**data["ranges"][k]) for k in SIGNALS}
-        closed, opened = float(data["closed_aperture"]), float(data["open_aperture"])
-        if not all(math.isfinite(x) for x in (closed, opened)) or not 0 <= closed < opened:
-            raise ValueError("Invalid aperture calibration")
-        return cls(ranges, closed, opened, bool(data.get("calibrated")))
+        try:
+            if data.get("schema_version") != 1:
+                raise ValueError("Unsupported calibration schema")
+            ranges = {k: Range(**data["ranges"][k]) for k in SIGNALS}
+            return cls(ranges, float(data["closed_aperture"]),
+                       float(data["open_aperture"]), bool(data.get("calibrated")))
+        except (AttributeError, KeyError, TypeError, OverflowError) as exc:
+            raise ValueError("Malformed calibration profile") from exc
 
     def save(self, path: Path):
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -90,7 +101,6 @@ class CalibrationSession:
         self.samples[self.stage].append(sample)
 
     def finish(self) -> Profile:
-        self.stage = None
         for stage in STAGES:
             if len(self.samples[stage]) < 8:
                 raise ValueError(f"Capture at least 8 valid live frames for {stage}")
@@ -118,7 +128,9 @@ class CalibrationSession:
             if opened - closed < 0.05:
                 raise ValueError("Inner-lip landmarks did not establish a usable opening range")
             closed += min(0.01, (opened - closed) * 0.04)
-        return Profile(ranges, closed, opened, True)
+        profile = Profile(ranges, closed, opened, True)
+        self.stage = None
+        return profile
 
     def status(self) -> dict:
         return {"stage": self.stage, "counts": {k: len(v) for k, v in self.samples.items()}}

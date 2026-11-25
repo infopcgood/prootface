@@ -39,17 +39,23 @@ void main(){gl_FragColor=vec4(textured?texture2D(emissionMap,uv).rgb:vec3(0.),1.
 
 class CompiledMesh:
     def __init__(self, character):
+        try:
+            self._load(character)
+        except (KeyError, TypeError, OverflowError) as exc:
+            raise ValueError('Malformed compiled character') from exc
+
+    def _load(self, character):
         if character.get('schema')!=2:
             raise ValueError('Live renderer requires a privately compiled schema-2 character')
         self.base=np.asarray(character['positions'],dtype=np.float32).reshape(-1,3)
         self.uv=np.asarray(character['uvs'],dtype=np.float32).reshape(-1,2)
         if len(self.uv)!=len(self.base) or not np.isfinite(self.base).all() or not np.isfinite(self.uv).all():
             raise ValueError('Invalid character vertex/UV data')
-        self.front=np.asarray(character.get('front_weights',front_motion_weights(character)),dtype=np.float32)
-        if self.front.shape!=(len(self.base),) or not np.isfinite(self.front).all():
-            raise ValueError('Invalid anterior guide')
         self.targets={}
         for name,t in character['targets'].items():
+            if any(isinstance(v, bool) or not math.isfinite(v) or int(v) != v
+                   for v in t['indices']):
+                raise ValueError('Sparse target indices must be integers')
             indices=np.asarray(t['indices'],dtype=np.intp)
             deltas=np.asarray(t['deltas'],dtype=np.float32).reshape(-1,3)
             if (len(indices)!=len(deltas) or len(set(indices.tolist()))!=len(indices)
@@ -57,10 +63,18 @@ class CompiledMesh:
                     or not np.isfinite(deltas).all()):
                 raise ValueError('Invalid sparse target')
             self.targets[name]=(indices,deltas)
+        front = character.get('front_weights')
+        if front is None:
+            front = front_motion_weights(character)
+        self.front = np.asarray(front, dtype=np.float32)
+        if (self.front.shape != (len(self.base),) or not np.isfinite(self.front).all()
+                or np.any(self.front < 0) or np.any(self.front > 1)):
+            raise ValueError('Invalid anterior guide')
         indices=[];self.parts=[]
         for part in character['parts']:
             start=len(indices);values=part['indices']
-            if len(values)%3 or any(int(v)!=v or v<0 or v>=len(self.base) for v in values):
+            if len(values)%3 or any(isinstance(v, bool) or not math.isfinite(v)
+                                   or int(v)!=v or v<0 or v>=len(self.base) for v in values):
                 raise ValueError('Invalid triangle indices')
             indices.extend(values);self.parts.append((start,len(values),bool(part['textured'])))
         self.indices=np.asarray(indices,dtype=np.intp)
@@ -112,7 +126,10 @@ class OffscreenRenderer:
         try:
             self._initialize(platform)
         except BaseException:
-            self.close()
+            try:
+                self.close()
+            except Exception:
+                pass  # Preserve the initialization failure after attempting cleanup.
             raise
 
     def _egl(self,name,result,args):
@@ -246,21 +263,25 @@ class OffscreenRenderer:
     def close(self):
         if self.closed:return
         if threading.get_ident()!=self.owner:raise RuntimeError('Close renderer on its owning thread')
-        if self.context and self.surface:
-            self._current()
-            if self.gl:
-                if self.buffers:self.gl.DeleteBuffers(len(self.buffers),(U*len(self.buffers))(*self.buffers))
-                if self.texture:self.gl.DeleteTextures(1,C.byref(U(self.texture)))
-                if self.program:self.gl.DeleteProgram(self.program)
-        if self.display:
-            self._egl('eglMakeCurrent',U,[P,P,P,P])(self.display,None,None,None)
-            if self.context:self._egl('eglDestroyContext',U,[P,P])(self.display,self.context)
-            if self.surface:self._egl('eglDestroySurface',U,[P,P])(self.display,self.surface)
-            with self._display_lock:
-                self._display_refs[self.display]-=1
-                if not self._display_refs[self.display]:
-                    self._egl('eglTerminate',U,[P])(self.display);del self._display_refs[self.display]
-        self.closed=True
+        try:
+            if self.context and self.surface:
+                self._current()
+                if self.gl:
+                    if self.buffers:self.gl.DeleteBuffers(len(self.buffers),(U*len(self.buffers))(*self.buffers))
+                    if self.texture:self.gl.DeleteTextures(1,C.byref(U(self.texture)))
+                    if self.program:self.gl.DeleteProgram(self.program)
+        finally:
+            try:
+                if self.display:
+                    self._egl('eglMakeCurrent',U,[P,P,P,P])(self.display,None,None,None)
+                    if self.context:self._egl('eglDestroyContext',U,[P,P])(self.display,self.context)
+                    if self.surface:self._egl('eglDestroySurface',U,[P,P])(self.display,self.surface)
+                    with self._display_lock:
+                        self._display_refs[self.display]-=1
+                        if not self._display_refs[self.display]:
+                            self._egl('eglTerminate',U,[P])(self.display);del self._display_refs[self.display]
+            finally:
+                self.closed=True
 
     def __enter__(self):return self
     def __exit__(self,*_):self.close()

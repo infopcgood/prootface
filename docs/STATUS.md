@@ -14,7 +14,7 @@
 
 ## Validation checkpoint
 
-Local core suite: 51 tests passed. Pure LED-map suite: 2 tests passed. Package
+Local core suite: 65 tests passed. Pure LED-map suite: 3 tests passed. Package
 wheel creation succeeded and includes only the public Python package. EGL tests
 exercise original synthetic geometry, side selection, one mirror, depth and BGR.
 
@@ -24,6 +24,13 @@ profile saving, dispatcher ownership, driver-byte output and an installed-launch
 smoke test. It uses original synthetic geometry and a recording hardware driver.
 See the [integration workflow](https://github.com/infopcgood/proto-ros2/actions/workflows/prootface-integration.yml)
 for pinned core revisions and the status of each ROS commit.
+
+Review hardening adds transactional command validation, shared Python/HTTP style
+bounds, stale-contact clearing, monotonic measurement selection, strict sparse
+indices, and cleanup after graphics/ROS failures. Runtime interfaces are listed
+in [API.md](API.md). Startup-only ROS settings are explicitly read-only; shared
+input queues retain a multi-face burst before filtering. Additional Jazzy tests
+cover that burst and steady watchdog progress while simulated ROS time is paused.
 
 ## Device-dependent work
 

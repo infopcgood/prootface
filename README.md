@@ -8,6 +8,9 @@ contrast, observed-motion accents, expression and rounded forward reach.
 Contact interrupts articulation; lost tracking relaxes toward rest. Narrowing
 is a rounding proxy, not independent protrusion or phoneme recognition.
 
+[Runtime API reference](docs/API.md) covers Python calls, controls, style bounds,
+HTTP endpoints, frame layout and worker lifecycle.
+
 ## Standalone preview and calibration
 
 Python 3.10+:

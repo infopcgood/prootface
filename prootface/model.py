@@ -7,6 +7,18 @@ from .openseeface import Measurement
 from .timing import FRAME_SECONDS
 
 
+STYLE_BOUNDS = {
+    "max_jaw_angle": (.1, .65), "recession": (0, .35),
+    "opening_gamma": (.6, 2), "max_corner_lift": (0, .35),
+    "asymmetry": (0, 1), "v_depth": (.02, .30),
+    "v_position": (.65, .92), "v_width": (.02, .10),
+    "lip_thickness": (.005, .04), "pose_contrast": (1, 4),
+    "opening_contrast": (1, 4), "key_pose_strength": (0, 1),
+    "accent_gain": (0, .5), "front_motion_scale": (0, 1),
+    "rounding_reach": (0, 1), "lower_lip_spike": (0, 1),
+}
+
+
 @dataclass
 class Style:
     max_jaw_angle: float = 0.36
@@ -25,6 +37,13 @@ class Style:
     front_motion_scale: float = 0.8
     rounding_reach: float = 1.0
     lower_lip_spike: float = 0.0
+
+    def __post_init__(self):
+        for name, (low, high) in STYLE_BOUNDS.items():
+            value = getattr(self, name)
+            if (isinstance(value, bool) or not isinstance(value, (int, float))
+                    or not math.isfinite(value) or not low <= value <= high):
+                raise ValueError(f"{name} must be a finite number in [{low}, {high}]")
 
 
 NEUTRAL = dict(opening=0.0, rounding=0.0, spread=0.0, seal=1.0,
@@ -55,12 +74,19 @@ def retarget(m: Measurement, profile: Profile) -> dict[str, float]:
 
 def pose_from_controls(controls: dict[str, float], style: Style, family_index: int | None = None,
                        accent: float = 0.0) -> dict:
+    if family_index is not None and (type(family_index) is not int or family_index not in (0, 1, 2)):
+        raise ValueError("Mouth family must be None, 0, 1 or 2")
+    if (isinstance(accent, bool) or not isinstance(accent, (int, float))
+            or not math.isfinite(accent) or not 0 <= accent <= .5):
+        raise ValueError("Accent must be a finite number in [0, 0.5]")
     c = dict(NEUTRAL)
     for k, v in controls.items():
-        if k in c:
-            if not math.isfinite(v):
-                raise ValueError("Non-finite character control")
-            c[k] = clamp(v, -1.0 if k.startswith(("corner", "brow")) else 0.0, 1.0)
+        if k not in c:
+            raise ValueError(f"Unknown character control: {k}")
+        if (isinstance(v, bool) or not isinstance(v, (int, float))
+                or not math.isfinite(v)):
+            raise ValueError(f"{k} must be a finite number")
+        c[k] = clamp(v, -1.0 if k.startswith(("corner", "brow")) else 0.0, 1.0)
     # Rounding acts on central articulation; it does not erase emotional corner lift.
     average = (c["corner_left"] + c["corner_right"]) / 2
     rendered_corners = {
@@ -134,9 +160,9 @@ class Animator:
     def step(self, target: dict[str, float], now: float, tracked: bool = True) -> dict:
         if not math.isfinite(now) or (self.last_time is not None and now < self.last_time):
             raise ValueError("Animation time must be finite and monotonic")
+        clean = pose_from_controls(target, self.style)
         dt = FRAME_SECONDS if self.last_time is None else min(0.1, now - self.last_time)
         self.last_time = now
-        clean = pose_from_controls(target, self.style)  # validate before modifying state
         contact=clean['seal']>=.98
         opening_delta=clean['opening']-self.last_raw['opening']
         entered_high=self.last_raw['opening']<.52<=clean['opening']

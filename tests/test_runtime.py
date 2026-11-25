@@ -35,3 +35,23 @@ class RuntimeTests(unittest.TestCase):
     def test_startup_failures_propagate(self):
         def fail():raise ValueError('bad character')
         with self.assertRaises(RuntimeError):RenderWorker(fail)
+
+    def test_render_and_cleanup_failures_preserve_the_first_cause(self):
+        closed = threading.Event()
+        class Renderer:
+            info = {}
+            def render_atlas(self, pose):
+                raise ValueError('render failure')
+            def close(self):
+                closed.set()
+                raise OSError('cleanup failure')
+        worker = RenderWorker(Renderer)
+        worker.submit(1, 0, {})
+        self.assertTrue(closed.wait(2))
+        worker.close()
+        worker.close()
+        with self.assertRaises(RuntimeError) as caught:
+            worker.poll()
+        self.assertEqual(str(caught.exception.__cause__), 'render failure')
+        with self.assertRaises(RuntimeError):
+            worker.submit(2, 1, {})

@@ -9,7 +9,8 @@ AVAILABLE=bool(importlib.util.find_spec('numpy') and importlib.util.find_spec('P
 if AVAILABLE:
     import numpy as np
     from PIL import Image
-    from prootface.offscreen import OffscreenRenderer
+    from prootface.offscreen import CompiledMesh, OffscreenRenderer
+    from unittest.mock import patch
 
 
 def write_fixture(root):
@@ -27,6 +28,28 @@ def write_fixture(root):
 
 @unittest.skipUnless(AVAILABLE,'Optional EGL/NumPy/Pillow renderer dependencies unavailable')
 class OffscreenTests(unittest.TestCase):
+    def test_invalid_sparse_indices_and_front_weights_are_rejected(self):
+        with tempfile.TemporaryDirectory() as root:
+            original = json.loads(write_fixture(root).read_text())
+            for indices in ([.5, 1, 2], [True, 1, 2], [0, 0, 2], [0, 1, 99]):
+                character = {**original, 'targets': {
+                    'open': {'indices': indices, 'deltas': [0, -.2, 0]*3}}}
+                with self.subTest(indices=indices), self.assertRaises(ValueError):
+                    CompiledMesh(character)
+            with self.assertRaises(ValueError):
+                CompiledMesh({**original, 'front_weights': [-1]*6})
+
+    def test_context_is_released_even_when_make_current_fails_during_close(self):
+        with tempfile.TemporaryDirectory() as root:
+            renderer = OffscreenRenderer(write_fixture(root), 16, 16)
+            display = renderer.display
+            with patch.object(renderer, '_current', side_effect=RuntimeError('context lost')):
+                with self.assertRaisesRegex(RuntimeError, 'context lost'):
+                    renderer.close()
+            self.assertTrue(renderer.closed)
+            self.assertNotIn(display, OffscreenRenderer._display_refs)
+            renderer.close()
+
     def test_depth_anatomical_sides_one_mirror_and_bgr_output(self):
         with tempfile.TemporaryDirectory() as root:
             with OffscreenRenderer(write_fixture(root),64,64) as renderer:
