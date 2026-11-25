@@ -24,6 +24,12 @@ python tools/render_video_comparison.py --source local/source24.mp4 \
   --character local/character.json
 ```
 
+To compare the optional lower-lip contour, rerun replay into a separate output
+directory with `--lower-lip-spike 1`, then render that directory. The privately
+compiled character must include the optional targets. The default remains 0;
+both runs use the same stronger rounded forward reach. Keep input, calibration,
+evaluation bounds and framing identical when comparing the two contours.
+
 Tracking needs OpenSeeFace's NumPy, OpenCV, ONNX Runtime and model dependencies;
 the public workflow pins a tested combination. Comparison rendering requires
 Blender, ffmpeg, NumPy and Pillow and stays outside the runtime path.

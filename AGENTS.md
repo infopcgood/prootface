@@ -84,6 +84,17 @@
 
 ## Latest review and real-video testing
 
+- Current comparison request: retain a pointed lower-lip spike during opening
+  and exaggerate forward reach of the rounded/puckered mouth. Both A and B
+  include the stronger reach; only B adds spike retention. The user has not
+  selected a winner. Keep lower_lip_spike default 0 and the option available.
+- The private importer can compile guided additive endpoint corrections.
+  Landmark indices and derived targets stay private. Use continuous fields
+  across emitting/occluding geometry; selecting only source-moved vertices or
+  moving each layer by rest coordinates produced rejected edge artifacts.
+  The current spike correction uses posed coordinates and vertical relief.
+  Reimport and native/WebGL parity were verified. Preserve exact rest/contact.
+
 - Latest real-video review asks for a little more drama. Defaults are now
   opening contrast 3.2 and gamma 1.0: tighten the in-betweens, keep strong hits,
   contact timing and the restrained front edge. Compare identical real packets

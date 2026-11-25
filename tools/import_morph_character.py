@@ -15,7 +15,7 @@ import sys
 import bpy
 from mathutils import Vector
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
-from prootface.rig import front_motion_weights
+from prootface.rig import add_mouth_variants,front_motion_weights
 
 
 def main():
@@ -93,6 +93,7 @@ def main():
                      dict(name='emission',indices=groups[True],textured=True)],
               targets=targets,view=view,anatomical_left_sign=settings['anatomical_left_sign'])
     data['front_weights']=front_motion_weights(data)
+    add_mouth_variants(data,settings.get('mouth_variants'))
     args.output.write_text(json.dumps(data,separators=(',',':'))+'\n')
     image=next(image for image in bpy.data.images if settings['emission_image'] in image.name)
     if image.packed_file:args.output.with_suffix('.png').write_bytes(image.packed_file.data)

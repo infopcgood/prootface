@@ -23,6 +23,8 @@ class Style:
     key_pose_strength: float = 0.95
     accent_gain: float = 0.45
     front_motion_scale: float = 0.8
+    rounding_reach: float = 1.0
+    lower_lip_spike: float = 0.0
 
 
 NEUTRAL = dict(opening=0.0, rounding=0.0, spread=0.0, seal=1.0,
@@ -96,6 +98,11 @@ def pose_from_controls(controls: dict[str, float], style: Style, family_index: i
                   blend_closed=c['seal']*max(c['lip_press'],min(.45,c['opening']*.8)))
     for key in ('bite','sibilant','postalveolar','rhotic'):
         blends['blend_'+key]=gate*c[key]/extra_norm
+    # Optional compiled contour variants use the same observed articulation.
+    # They add no timing state, prediction or phoneme inference.
+    for key in ('open','round','wide','bite','sibilant','postalveolar','rhotic'):
+        blends['blend_spike_'+key]=blends['blend_'+key]*style.lower_lip_spike
+    blends['blend_round_reach']=gate*rounding*style.rounding_reach
     for side in ('left','right'):
         corner=rendered_corners[f'corner_{side}_render']
         blends[f'blend_smile_{side}']=max(0,corner)*.55
@@ -103,6 +110,7 @@ def pose_from_controls(controls: dict[str, float], style: Style, family_index: i
         blends[f'blend_pucker_{side}']=rounding*(1-visible)*.12
         blends[f'blend_blink_{side}']=1-c[f'eye_{side}']
     return {**c, **rendered_corners, **blends, "front_motion_scale":style.front_motion_scale,
+            "lower_lip_spike":style.lower_lip_spike,"rounding_reach":style.rounding_reach,
             "accent":accent,"aperture": visible, "jaw_angle": style.max_jaw_angle * visible,
             "jaw_recession": style.recession * visible,
             "width_scale": clamp(1 + 0.10 * c["spread"] - 0.28 * c["rounding"], 0.65, 1.10)}

@@ -22,7 +22,7 @@ def main():
     bpy.ops.wm.read_factory_settings(use_empty=True)
     base=np.asarray(rig['positions'],dtype=float).reshape(-1,3)
     uv=np.asarray(rig['uvs']).reshape(-1,2)
-    targets={name:(np.asarray(t['indices']),np.asarray(t['deltas']).reshape(-1,3)) for name,t in rig['targets'].items()}
+    targets={name:(np.asarray(t['indices'],dtype=np.intp),np.asarray(t['deltas']).reshape(-1,3)) for name,t in rig['targets'].items()}
     front=np.asarray(rig.get('front_weights',front_motion_weights(rig)))
     zoom=rig['view']['zoom'];ox,oy=rig['view']['offset'];aspect=960/540
     sign=-rig.get('anatomical_left_sign',1)

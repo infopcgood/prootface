@@ -41,7 +41,7 @@ def estimate_sample_profile(measurements):
     return Profile(ranges, closed, opened, calibrated=False)
 
 
-def replay(records, profile, start, end, warmup_start):
+def replay(records, profile, start, end, warmup_start, lower_lip_spike=0.0):
     if not 0 <= warmup_start <= start < end:
         raise ValueError('Invalid replay interval')
     # No profile is read or written; all packet validation, staleness, contact
@@ -49,6 +49,7 @@ def replay(records, profile, start, end, warmup_start):
     app = Application(Path('/nonexistent/prootface-replay-profile'))
     app.profile = profile
     app.mode = 'live'
+    app.animator.style.lower_lip_spike = lower_lip_spike
     output = []
     for row in records:
         timestamp = row['time']
@@ -77,7 +78,10 @@ def main():
     parser.add_argument('--calibration-end', type=float, default=14)
     parser.add_argument('--start', type=float, default=16)
     parser.add_argument('--end', type=float, default=22)
+    parser.add_argument('--lower-lip-spike', type=float, default=0.0)
     args = parser.parse_args()
+    if not 0 <= args.lower_lip_spike <= 1:
+        parser.error('Lower lip spike strength must be between zero and one')
     if not 0 <= args.calibration_start < args.calibration_end <= args.start:
         parser.error('Calibration must end before the evaluation interval')
     records = [json.loads(line) for line in args.packets.read_text().splitlines()]
@@ -86,7 +90,7 @@ def main():
         if args.calibration_start <= row['time'] < args.calibration_end and row['packet']:
             measurements.extend(decode_packet(base64.b64decode(row['packet']), row['time']))
     profile = estimate_sample_profile(measurements)
-    frames = replay(records, profile, args.start, args.end, args.calibration_end)
+    frames = replay(records, profile, args.start, args.end, args.calibration_end,args.lower_lip_spike)
     expected = round((args.end - args.start) * ANIMATION_FPS)
     if len(frames) != expected:
         raise ValueError('Recording does not cover the complete evaluation interval')
@@ -98,6 +102,7 @@ def main():
                    calibration=[args.calibration_start, args.calibration_end],
                    evaluation=[args.start, args.end],
                    tracked_frames=sum(r['tracking'] for r in frames),
+                   lower_lip_spike=args.lower_lip_spike,
                    note='Real video measurements; earlier-section estimated calibration; causal live Application.')
     (args.output / 'replay.json').write_text(json.dumps(summary, indent=2))
     print(json.dumps(summary))

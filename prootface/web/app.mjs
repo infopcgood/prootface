@@ -29,6 +29,7 @@ for(const [key,label,min,max,value] of [['max_jaw_angle','Opening arc',.1,.65,.3
  ['opening_gamma','Conversational restraint',.6,2,1],['pose_contrast','Shape contrast',1,4,2.5],
  ['opening_contrast','Small / large contrast',1,4,3.2],['key_pose_strength','Key pose strength',0,1,.95],
  ['accent_gain','Opening accents',0,.5,.45],['front_motion_scale','Front lip motion',0,1,.8],
+ ['rounding_reach','Rounded forward reach',0,1,1],['lower_lip_spike','Lower lip spike',0,1,0],
  ['v_depth','Rear V point',.02,.30,.11]])
  if((!character||key!=='v_depth')&&!(character?.schema===2&&key==='recession'))slider($('#styles'),key,character?.schema===2&&key==='max_jaw_angle'?'Opening strength':label,min,max,value,(k,v)=>post('/api/style',{[k]:v}));
 document.querySelectorAll('[data-mode]').forEach(b=>b.onclick=()=>post('/api/control',{mode:b.dataset.mode}));

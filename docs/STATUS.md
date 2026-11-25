@@ -8,6 +8,30 @@ rate is **24 fps**. The user explicitly reiterated: this must work in REAL TIME.
 No tongue or tooth rows. Preserve the selected visual identity and keep source
 assets and inspection details private. Hardware/ROS work remains secondary.
 
+## Current A/B: lower-lip spike and stronger forward rounding
+
+The user requested a comparison that sustains the lower lip's spike during
+opening, plus much stronger forward reach of rounded/puckered shapes. Both
+variants use the same stronger forward target. A retains the prior lower
+contour; B enables guided spike-relief corrections. The user has not chosen
+between them. `lower_lip_spike` remains 0 by default; `rounding_reach` is 1.
+The private import settings now reproduce both options without source edits.
+
+The generic importer compiles optional sparse art-direction corrections from
+private guides. A continuous field moves emitting and occluding geometry
+together; independent layer selection and rest-space spike patches were
+rejected after visual artifacts. The final spike field uses posed coordinates
+and vertical relief, retaining the authored horizontal motion. Primary weights,
+calibration, timing, front restraint and contact priority are retained.
+
+The matched real-video A/B replays 144 valid OpenSeeFace frames at 24 fps. Both
+have the same frozen profile and original audio timing. Enlarged mouth frames
+were reviewed; the new contour stays within the fixed camera bounds. No new
+enclosed mouth gaps were found beyond the same single-pixel threshold artifacts
+in both variants. Full reimport reproduces the compiled data. Native/JavaScript
+vertex difference is below 2.1e-7 on review poses. 41 Python and 14 Node tests
+pass. Device latency and browser runtime remain unmeasured.
+
 ## Latest modest drama increase
 
 The user requested a little more drama in the real-video result. Opening
@@ -98,7 +122,7 @@ Specialized consonant inference and actual-device evaluation remain future work.
 
 ## Verification
 
-- Python unittest: 37 passed.
+- Python unittest: 41 passed.
 - Node geometry/character/morph tests: 14 passed.
 - New regressions cover tight-to-hit contrast, causal onset accents, prompt
   cancellation, 24 fps key exposures, short closures, dominant-shape

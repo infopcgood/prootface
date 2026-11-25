@@ -195,6 +195,38 @@ contact, blinks and expression targets stay intact. The same generic rule is
 used by the importer, WebGL and native review renderer. It does not change
 calibration, pose timing or the large opening response in the rest of the mouth.
 
+## Optional lower-lip contour and forward rounding
+
+The latest art-direction experiment compares the current lower lip with a
+version that retains pointed relief during opening. Both have stronger forward
+reach for the narrowing/rounding gesture. The user has not selected the lower
+contour variant; `lower_lip_spike` defaults to 0. `rounding_reach` defaults to 1.
+They are character-style controls and require no wearer recalibration.
+
+Private import settings may include `mouth_variants`. The generic compiler
+uses a rest anchor/tip guide to measure spike relief and an optional posed-edge
+landmark to locate the exposed lower contour. For each primary mouth endpoint,
+it compiles a vertical, spatially weighted correction that retains relief as
+the lip follows the jaw. The field is evaluated in the posed coordinates of
+both emitting and occluding surfaces. It preserves coincident seams and avoids
+the layer disagreement seen with independently moved rest-space patches.
+The horizontal trajectory remains authored. This is a newly curated additive
+correction, not extrapolation of the original primary mouth weights.
+
+The forward-reach target uses a continuous horizontal field over the mouth
+region. Its private extent is set relative to mouth width. It moves layers
+together rather than stretching the front edge. The existing .8 anterior
+restraint still applies to the original articulation. Narrowing is still only
+a rounding proxy; no O/OO phoneme recognition or physical lip protrusion
+measurement has been added.
+
+At runtime each spike correction follows its corresponding primary weight
+times the spike-style strength. Forward reach follows filtered narrowing,
+contact release and its style strength. Rest and full contact contribute zero
+from both additions. The live path only blends additional sparse targets;
+it adds no lookahead, phoneme timing or frame queue. The same real-video
+measurements, frozen profile, 24 fps clock and camera frame are used in A/B.
+
 ## Real-video evaluation
 
 `tools/track_video.py` runs an external upstream OpenSeeFace checkout on
