@@ -43,10 +43,14 @@ Opening strength maps it to a bounded authored response:
 
 `s = clamp(opening^gamma * opening_strength / .36)`
 
-`a = s * (2 - s) * (1 - seal)`
+`base = s^q / (s^q + (1-s)^q)`, with `q = 2.4`
 
-This increases readability in the middle of the calibrated feature range and
-preserves exact closed/full endpoints. The input feature is not a physical
+`a = clamp(base + opening_accent) * (1 - seal)`
+
+This expands the range around its middle: small movements stay small and
+large movements approach the authored extreme. It preserves exact closed/full
+endpoints. The older ease-out boosted almost every opening and flattened the
+contrast between intervening shapes and accents. The input feature is not a physical
 percentage of a mesh's jaw travel. Default gamma is .85.
 
 Normalize rounding and spread by `max(1, rounding + spread)`. Apply the 2.5
@@ -154,3 +158,26 @@ Realtime here describes the controller architecture and live processing path.
 CM4 end-to-end latency and rendering performance still require actual-device
 measurement. Offline Blender is only a review renderer; it is not in the live
 measurement-to-pose-to-WebGL path.
+
+
+## Stronger performance contrast
+
+The latest feedback rejected the preceding 24 fps pass as insufficiently dramatic.
+The response now compresses small openings instead of amplifying all movement.
+The live held-family commitment is .95 by default, reducing ambiguous middle
+shapes while remaining within the configured pose basis.
+
+An opening accent is triggered by an observed large opening onset, entry into
+the high opening band, or release from contact into an already large opening.
+The trigger uses current/past normalized input, never a future phone label.
+The default accent gain is .45, held for two character frames and then settled
+with a short decay. It never extrapolates beyond the authored primary basis.
+A sufficiently falling opening signal, contact or tracking loss cancels it
+immediately, so a pose hit cannot delay a closure. A three-frame refractory
+period prevents repeated triggering on one gesture.
+
+Closing jaw input uses a faster response than opening. This restores a tight
+intervening silhouette promptly and preserves large/small rhythm. Wearer
+calibration stays separate; opening contrast, key-pose commitment and accent
+gain are character-style controls. Actual wearer capture is still needed to
+tune these choices; comparison renders are synthetic input replay.

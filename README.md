@@ -10,7 +10,11 @@ rest identity, supports clear closures and persistent expression, and avoids
 the rejected raster-ribbon swelling and sideways squash. No tongue or tooth rows.
 
 **Working rate: 24 fps.** Mouth-shape changes are deliberately exaggerated:
-stronger silhouette contrast, short readable holds and fast transitions.
+stronger silhouette contrast, tight intervening shapes, full opening hits,
+short readable holds and fast transitions.
+The previous ease-out made almost every opening large. The current contrast
+curve preserves quiet shapes and adds brief accents only to observed large
+opening gestures. Closing input cancels an accent immediately.
 The live controller uses only current/past measurements, keeps jaw motion
 responsive during shape holds and preserves brief contacts between output frames.
 Browser refresh does not generate extra interpolated poses.

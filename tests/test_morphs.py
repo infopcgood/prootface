@@ -16,14 +16,16 @@ class MorphPoseTests(unittest.TestCase):
                         if seal==1:
                             self.assertEqual(sum(weights),0)
 
-    def test_articulation_response_preserves_endpoints_and_readable_middle(self):
+    def test_articulation_response_preserves_endpoints_and_expands_contrast(self):
         rest=pose_from_controls(NEUTRAL,Style())
         full=pose_from_controls(dict(opening=1,seal=0),Style())
-        middle=pose_from_controls(dict(opening=.4,seal=0),Style())
+        quiet=pose_from_controls(dict(opening=.15,seal=0),Style())
+        accent=pose_from_controls(dict(opening=.75,seal=0),Style())
         self.assertEqual(rest['blend_open'],0)
         self.assertEqual(full['blend_open'],1)
-        self.assertGreater(middle['blend_open'],middle['aperture'])
-        self.assertLessEqual(middle['blend_open'],1)
+        self.assertLess(quiet['blend_open'],quiet['aperture'])
+        self.assertGreater(accent['blend_open'],accent['aperture'])
+        self.assertLessEqual(accent['blend_open'],1)
 
     def test_contact_release_does_not_swallow_short_opening(self):
         animator=Animator()

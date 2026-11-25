@@ -132,3 +132,15 @@ now take precedence over broad continuous interpolation. Preplanned phoneme
 timing is only a synthetic test-input source. The live controller uses no
 future measurements or phoneme schedule, and unsupported consonant channels
 are excluded from the default tracking-mode preview.
+
+
+## Follow-up performance review
+
+The user found the preceding 24 fps result insufficiently dramatic. Reviewing
+our response curve showed that boosting nearly every opening reduced dynamic
+contrast even though peak weights were already large. The revised experiment
+uses small/large range expansion, a firmer dominant family, short causal
+opening hits and faster compression. A matched replay isolates the effect of
+those controller changes: input sequence, camera framing and audio timing stay
+fixed. This records an implementation finding, not a claim about the private
+reference asset or a proof of perceptual naturalness.

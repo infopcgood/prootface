@@ -28,6 +28,11 @@
   rendering in the runtime. A scripted reference is not proof of live tracking.
   Label synthetic replay as such. Specialized consonant hints are not currently
   measured by OpenSeeFace; do not show them as tracked capabilities.
+- Latest feedback: the previous 24 fps pass was still too restrained. Do not
+  raise all openings together: that makes quiet shapes as large as accents.
+  Preserve tight intervening shapes, push large observed opening gestures to
+  authored extremes, and use brief causal hits/settles. Closing and contact
+  must interrupt an accent immediately. Judge a matched before/after replay.
 
 ## Asset privacy
 

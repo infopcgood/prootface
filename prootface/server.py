@@ -110,6 +110,7 @@ class Application:
                     "v_position": (.65, .92), "v_width": (.02, .10),
                     "lip_thickness": (.005, .04),
                     "pose_contrast": (1,4),
+                    "opening_contrast": (1,4),"key_pose_strength": (0,1),"accent_gain": (0,.5),
                 }
                 proposed = asdict(self.animator.style)
                 for k, v in data.items():

@@ -19,6 +19,9 @@ class Style:
     v_width: float = 0.045
     lip_thickness: float = 0.016
     pose_contrast: float = 2.5
+    opening_contrast: float = 2.4
+    key_pose_strength: float = 0.95
+    accent_gain: float = 0.45
 
 
 NEUTRAL = dict(opening=0.0, rounding=0.0, spread=0.0, seal=1.0,
@@ -47,7 +50,8 @@ def retarget(m: Measurement, profile: Profile) -> dict[str, float]:
     )
 
 
-def pose_from_controls(controls: dict[str, float], style: Style, family_index: int | None = None) -> dict:
+def pose_from_controls(controls: dict[str, float], style: Style, family_index: int | None = None,
+                       accent: float = 0.0) -> dict:
     c = dict(NEUTRAL)
     for k, v in controls.items():
         if k in c:
@@ -63,10 +67,12 @@ def pose_from_controls(controls: dict[str, float], style: Style, family_index: i
     gate = 1-c['seal']
     powered = c['opening']**style.opening_gamma
     visible = powered*gate
-    # Ease into the readable part of an authored opening sample. The source
-    # feature is calibrated movement, not a physical percentage of mesh travel.
+    # Expand the performance range: quiet shapes remain tight, large gestures
+    # reach the authored extremes. Raising every opening hid the accents.
     strength = clamp(powered*style.max_jaw_angle/.36)
-    articulation = strength*(2-strength)*gate
+    low=strength**style.opening_contrast
+    high=(1-strength)**style.opening_contrast
+    articulation=clamp(low/(low+high)+accent)*gate
     # Authored pose samples form a convex mouth basis. Width changes select
     # articulation, rather than squashing the entire closed silhouette.
     rounding, spreading = c['rounding'], c['spread']
@@ -77,7 +83,8 @@ def pose_from_controls(controls: dict[str, float], style: Style, family_index: i
     family_total=sum(family)
     family=[value/family_total for value in family]
     if family_index is not None:
-        family=[.35*value+(.65 if i==family_index else 0) for i,value in enumerate(family)]
+        commit=style.key_pose_strength
+        family=[(1-commit)*value+(commit if i==family_index else 0) for i,value in enumerate(family)]
     neutral,rounded,wide=family
     extra_total=sum(c[key] for key in ('bite','sibilant','postalveolar','rhotic'))
     extra_norm=max(1,extra_total)
@@ -94,7 +101,7 @@ def pose_from_controls(controls: dict[str, float], style: Style, family_index: i
         blends[f'blend_frown_{side}']=max(0,-corner)*.45
         blends[f'blend_pucker_{side}']=rounding*(1-visible)*.12
         blends[f'blend_blink_{side}']=1-c[f'eye_{side}']
-    return {**c, **rendered_corners, **blends, "aperture": visible, "jaw_angle": style.max_jaw_angle * visible,
+    return {**c, **rendered_corners, **blends, "accent":accent,"aperture": visible, "jaw_angle": style.max_jaw_angle * visible,
             "jaw_recession": style.recession * visible,
             "width_scale": clamp(1 + 0.10 * c["spread"] - 0.28 * c["rounding"], 0.65, 1.10)}
 
@@ -110,6 +117,9 @@ class Animator:
         self.family_since = None
         self.contact_active = True
         self.contact_until = -math.inf
+        self.accent_until = -math.inf
+        self.last_accent = -math.inf
+        self.accent = 0.0
 
     def step(self, target: dict[str, float], now: float, tracked: bool = True) -> dict:
         if not math.isfinite(now) or (self.last_time is not None and now < self.last_time):
@@ -118,6 +128,17 @@ class Animator:
         self.last_time = now
         clean = pose_from_controls(target, self.style)  # validate before modifying state
         contact=clean['seal']>=.98
+        opening_delta=clean['opening']-self.last_raw['opening']
+        entered_high=self.last_raw['opening']<.52<=clean['opening']
+        released=self.contact_active and not contact
+        if not tracked or contact or opening_delta<-.08:
+            self.accent=0;self.accent_until=-math.inf
+        elif (clean['opening']>=.52 and (opening_delta>.10 or released or entered_high) and
+              now-self.last_accent>=3*FRAME_SECONDS-1e-9):
+            self.accent=self.style.accent_gain
+            self.last_accent=now;self.accent_until=now+2*FRAME_SECONDS
+        elif now>=self.accent_until-1e-9:
+            self.accent*=math.exp(-dt/(1.25*FRAME_SECONDS))
         if tracked and contact and not self.contact_active:
             self.contact_until=now+2*FRAME_SECONDS
         self.contact_active=contact
@@ -136,6 +157,8 @@ class Animator:
                 # Contact can attach quickly, and must detach promptly as well.
                 # Reusing the jaw low-pass here swallowed short vowel openings.
                 tau = .008 if value < old else .012
+            if tracked and k=='opening' and value<old:
+                tau=.009
             self.controls[k] += (value - old) * (1 - math.exp(-dt / tau))
         if tracked and (contact or now<self.contact_until-1e-9):
             # Contact priority prevents filtering or smile correctives leaking a gap.
@@ -147,7 +170,7 @@ class Animator:
             (candidate!=self.family_index and scores[candidate]>scores[self.family_index]+.15 and
              (now-self.family_since>=2*FRAME_SECONDS-1e-9 or contact))):
             self.family_index=candidate;self.family_since=now
-        return pose_from_controls(self.controls,self.style,self.family_index)
+        return pose_from_controls(self.controls,self.style,self.family_index,self.accent)
 
 
 def _monotone_value(times: list[float], values: list[float], t: float) -> float:

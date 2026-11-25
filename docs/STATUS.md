@@ -8,6 +8,20 @@ rate is **24 fps**. The user explicitly reiterated: this must work in REAL TIME.
 No tongue or tooth rows. Preserve the selected visual identity and keep source
 assets and inspection details private. Hardware/ROS work remains secondary.
 
+## Latest performance revision
+
+The user found the prior 24 fps pass still insufficiently dramatic. The old
+opening ease-out lifted quiet movement close to the accents. It was replaced
+by a contrast curve (default exponent 2.4), .95 held-family commitment and
+observed-opening accents. Large onsets hit the authored extreme briefly; quiet
+shapes compress tightly. Closing, contact and tracking loss cancel an accent
+immediately. The driver remains causal at 24 fps; there is no pose extrapolation
+outside the primary authored basis.
+
+A before/after comparison uses identical synthetic inputs, audio timing and
+fixed framing. The full-face new clip and isolated-mouth comparison are private
+review outputs. They are not live camera recordings or CM4 benchmarks.
+
 ## Current behavior
 
 - The live character clock and SSE presentation target 24 fps. Browser output
@@ -42,9 +56,10 @@ Specialized consonant inference and actual-device evaluation remain future work.
 
 ## Verification
 
-- Python unittest: 30 passed.
+- Python unittest: 33 passed.
 - Node geometry/character/morph tests: 13 passed.
-- New regressions cover 24 fps key exposures, short closures, dominant-shape
+- New regressions cover tight-to-hit contrast, causal onset accents, prompt
+  cancellation, 24 fps key exposures, short closures, dominant-shape
   contrast, bounded primary weights, no dependence on future inputs, continued
   jaw response during family holds, contact interruption, and brief contacts
   observed between output frames.
@@ -59,7 +74,7 @@ Specialized consonant inference and actual-device evaluation remain future work.
 ## Continuity and repository
 
 Public repository: https://github.com/infopcgood/prootface, branch master.
-Previous checkpoint: ae0384190d7200869291399884afd6437333823b.
+Previous checkpoint: b783113cb77f43357aa792b5142faa9df81ad765.
 Private settings and runtime data remain under ignored local/. Publish reusable
 code and generic instructions only; never include source key/object names,
 reference identifiers, derived geometry, textures or private inspection notes.

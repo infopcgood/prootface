@@ -31,3 +31,28 @@ class RealtimeAnimationTests(unittest.TestCase):
             a=Animator();poses=[a.step(target,i*FRAME_SECONDS) for i,target in enumerate(prefix+suffix)]
             outputs.append(poses[:len(prefix)])
         self.assertEqual(outputs[0],outputs[1])
+
+    def test_opening_hit_reaches_extreme_and_tightens_promptly(self):
+        a=Animator()
+        a.step(dict(opening=.18,seal=0),0)
+        hit=a.step(dict(opening=.72,seal=0),FRAME_SECONDS)
+        held=a.step(dict(opening=.72,seal=0),2*FRAME_SECONDS)
+        tight=a.step(dict(opening=.18,seal=0),3*FRAME_SECONDS)
+        amount=lambda p:sum(p['blend_'+k] for k in ('open','round','wide'))
+        self.assertGreaterEqual(amount(hit),.99)
+        self.assertGreaterEqual(amount(held),.99)
+        self.assertLess(amount(tight),.08)
+        self.assertEqual(tight['accent'],0)
+
+    def test_gradual_large_opening_can_accent_without_lookahead(self):
+        a=Animator();poses=[]
+        for i,value in enumerate((.3,.35,.4,.45,.5,.55)):
+            poses.append(a.step(dict(opening=value,seal=0),i*FRAME_SECONDS))
+        self.assertEqual(poses[-2]['accent'],0)
+        self.assertGreater(poses[-1]['accent'],0)
+
+    def test_contact_and_tracking_loss_cancel_opening_accents(self):
+        for tracked in (True,False):
+            a=Animator();a.step(dict(opening=.8,seal=0),0)
+            p=a.step(dict(opening=.8,seal=1),FRAME_SECONDS,tracked)
+            self.assertEqual(p['accent'],0)
