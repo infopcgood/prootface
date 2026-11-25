@@ -1,144 +1,65 @@
-# Existing proto-ros2 pipeline: integration reference
+# ROS integration contract
 
-Re-inspected `infopcgood/proto-ros2` master commit
-`6110aa90568b796e18188dd3104e273d1e30c9f0` on 2026-11-25. The user has now
-asked how Prootface would integrate. This is a source-checked integration
-contract; ROS wiring and a live offscreen renderer are not implemented here.
+Implementation:
+[proto-ros2/prootface_pkg](https://github.com/infopcgood/proto-ros2/tree/master/src/prootface_pkg).
+The existing shared receiver and dispatcher retain their roles. The new launch
+uses Prootface instead of the named-PNG face renderer; legacy launch stays intact.
 
-## Observed current path
+## Input
 
-1. OpenSeeFace sends UDP; `osf_receiver_pkg` binds port 11573 and publishes
-   `interface_pkg/OSFData` on `osf_data`.
-2. `face_renderer_pkg` currently consumes categorical `FacialExpression` on
-   `facial_expression`, composites PNG eye/mouth assets, and publishes custom
-   `Image` messages on `request_screen_display`.
-3. `screen_dispatcher_pkg` accepts frames only from the owner selected by the
-   `request_screen_control` service, then republishes on `screen_display`.
-4. Existing display backends consume those custom image messages.
+The ROS node subscribes to interface_pkg/OSFData on `osf_data`. The pure adapter
+in `prootface.ros_input` maps `_left`/`_right` feature suffixes, uses raw eye-open
+values and derives inner-lip aperture from original 2D points. Common validation
+with UDP input prevents transport-specific changes to calibration or contact.
+Sender time is metadata; freshness uses local monotonic receipt time.
 
-The `osf_expression_detector_pkg` directory currently contains packaging and
-tests but no detector implementation file. Do not describe it as an existing
-continuous retargeting layer.
+No second UDP receiver is started by the ROS node. The existing OSF receiver
+accepts complete datagrams, including multiple faces. One configured face ID
+feeds the calibrated controller; the rest are ignored by that controller.
 
-## Message details that matter later
+## Control and calibration
 
-- OSFData has signed mouth/corner features plus eye data, confidences, 2D and
-  3D points. Field suffixes are `_left`/`_right`, unlike upstream `_l`/`_r`.
-- Custom Image fields are `sender`, `height`, `width`, `flip_second_screen`,
-  `data`. There is no encoding field or separate anatomical side payload.
-- Existing face renderer flattens OpenCV BGR uint8 data and sets
-  `flip_second_screen=True`.
-- Current proto_panel_display hard-codes 50x34, 8 strips x 150 LEDs, loads
-  coordinates from `id.txt`, samples BGR pixels and reverses channels to RGB.
-  Those are existing backend assumptions, NOT defaults for the denser panel.
+The same Application owns profile, calibration captures, style and Animator.
+Its HTTP server can run independently from sockets and timing loops. The ROS
+node provides the 24 Hz steady-time control loop. Only current/past input is
+used. Input callbacks latch brief contacts, including between presentation ticks.
 
-## Intended insertion point
+Presentation rate can be 24, 12 or 6 fps without retiming the controller. A
+render worker owns EGL and coalesces pending poses. At most one pending pose
+and one completed frame are retained; stale completed frames are discarded.
+UI/manual/demo commands operate on this same state. The legacy categorical
+FacialExpression topic is not an automatic continuous articulation source.
 
-`osf_data` -> Prootface calibration + continuous character state -> renderer ->
-`request_screen_display` -> existing dispatcher -> chosen backend.
+## Rendering and transport
 
-Use an adapter into the pure core instead of another UDP receiver in production.
-Retain the dispatcher's ownership protocol. Decide explicitly how two distinct
-anatomical views are transported: a single mirrored image cannot preserve an
-asymmetric smirk or wink. An atlas or an extended interface may be appropriate,
-but must be agreed with the user's actual display backend later. Avoid silently
-mirroring an already side-specific render twice.
+The headless GLES renderer consumes a private compiled schema-2 mesh and texture.
+It draws each anatomical side with its own depth sign and one display mirror,
+using the same sparse authored weights as the viewer. It returns contiguous
+uint8 BGR pixels with a top-left origin. Blender is only an offline tool.
 
-No changes to proto-ros2 have been made by this task. End-to-end ROS operation,
-Hailo inference and hardware LED output are not implemented or tested here.
+The atlas layout is:
 
-## Concrete integration proposal
+- width: twice the configured per-side virtual width;
+- height: configured per-side virtual height;
+- left half: anatomical left view;
+- right half: anatomical right view;
+- Image.data: row-major BGR bytes;
+- flip_second_screen: false, because both views are already side-specific.
 
-Add a `prootface_node` in the ROS workspace. It owns the shared calibrated
-character state and the realtime rendering output, replacing the PNG face
-renderer in the active launch. OpenSeeFace and the existing UDP receiver stay
-upstream. Do not run the standalone Prootface UDP listener alongside it on the
-same port, and do not route continuous measurements through expression names.
+At startup the ROS node requests screen control with its fully qualified sender
+name, then publishes Image messages with that same sender to
+`request_screen_display`. The existing dispatcher forwards its selected producer
+to `screen_display`. The node does not repeatedly reclaim ownership from another
+producer. The current dispatcher is a selected-sender gate, not a timed lease.
 
-### Input and calibration
+## Outputs
 
-Subscribe to `interface_pkg/OSFData` on `osf_data`. The message already carries
-the required features and landmarks; no additional inference model is needed
-for retargeting. A thin adapter constructs the core Measurement:
+The OpenCV backend can display the atlas using matching global display dimensions.
+The new WS atlas backend consumes an explicit map with per-side pixel positions,
+physical strip/LED order and unused slots. It converts BGR to RGB exactly once.
+It validates map dimensions and driver strip count, rejects extra mirroring and
+clears stale output. No physical map can be generated from virtual frame dimensions.
+The existing single-image WS/HUB75 backends remain separate legacy entry points.
 
-| OSFData | Core use |
-| --- | --- |
-| id | Selected face ID |
-| mouth_open / mouth_wide | Signed opening/width features |
-| mouth_corner_updown_left/right | Core `_l`/`_r` feature names |
-| eyebrow_updown_left/right | Core `_l`/`_r` feature names |
-| left_eye_open / right_eye_open | Blink openness; do not substitute signed eye features |
-| confidence / got_3d_points | Same validity checks as standalone input |
-| points[58..65] | Normalized inner-lip aperture and contact |
-
-Use local monotonic receipt time for freshness. Keep the callback short, retain
-the latest valid measurement, and latch brief contacts as the current live
-Application does. Run the same calibration, retargeter and Animator at 24 Hz.
-Rendering may hold that state at a lower chosen cadence without slowing the
-controller or changing contact timers. Use small/latest-only queues to prevent
-a slow renderer from replaying old expressions.
-
-Refactor the Application's decoded-measurement ingestion and HTTP/calibration
-hosting away from socket creation. The ROS adapter can then reuse the same
-state and calibration buttons without binding UDP. Expose profile path, selected
-face, private character path, style and presentation rate as configuration.
-Calibration remains specific to wearer/camera/tracker baseline, independent
-of ROS transport and panel mapping.
-
-### Live renderer and screen ownership
-
-The current working renderer is the WebGL viewer. Blender is an offline review
-tool. Production ROS output still needs a realtime offscreen renderer that
-consumes the same compiled mesh/texture and authored weights, projects both
-anatomical sides, and returns BGR uint8 pixels. That is a substantive remaining
-implementation item; the existing PNG compositor cannot produce these poses.
-Keep a latest-pose handoff between controller and renderer instead of a growing
-render queue. Validate the renderer against the native reference frames.
-
-The node calls `request_screen_control` with sender `prootface_node`, then
-publishes Image messages to `request_screen_display` with exactly that sender.
-The existing dispatcher forwards them to `screen_display`. Its current service
-simply changes the accepted sender; it is not a timed lease or automatic crash
-failover. The old face renderer must not simultaneously reclaim ownership.
-Existing expression commands can later become timed expression overlays while
-tracked jaw/contact remain continuous; this mapping does not exist yet.
-
-### Two side displays: use one synchronized atlas
-
-For the first integration, retain the existing Image and dispatcher. Package
-left and right side renders in a side-by-side BGR atlas: width `2*side_width`,
-height `side_height`, row-major data, `flip_second_screen=False`. The dispatcher
-already forwards dimensions and bytes without interpreting them. This carries
-both sides from the same animation tick and preserves asymmetric corners and
-winks. Each image must be projected/mirrored once; do not then duplicate/flip a
-side-specific view in the backend.
-
-Update the dense-WS display backend to understand this atlas and sample the
-correct half using each panel's own LED coordinates, strip order and orientation.
-Separate virtual frame dimensions from per-side dimensions and physical LED
-counts. The current panel code hard-rejects sizes other than 50x34 and assumes
-8 strips of 150 LEDs, so changing only a resolution parameter is insufficient.
-Its mapping also does not implement the generic flip flag. Preserve the BGR
-message convention and perform the final BGR-to-RGB conversion once.
-
-`opencv2_display_pkg` can validate the atlas first, using matching configured
-atlas dimensions. Physical WS geometry, denser LED locations, strip counts and
-driver throughput must come from the actual panels, not the existing constants.
-
-### Launch and completion sequence
-
-The current `launch.sh` starts only screen_dispatcher, the PNG face renderer and
-mic_input. It does not start the parameter server, OSF receiver or display node.
-Create an explicit launch configuration for the parameter server, existing OSF
-receiver, new Prootface node, dispatcher and selected backend; OpenSeeFace startup
-remains part of the measurement pipeline.
-
-1. Validate OSFData-to-Measurement parity against the same packet recording.
-2. Wire the calibrated controller and its UI into the ROS node.
-3. Implement realtime BGR frame output; compare it with approved A renders.
-4. Exercise screen ownership and the two-view atlas through the OpenCV backend.
-5. Parameterize/map the actual dense WS panels, then measure CM4 latency and
-   sustained output. Keep hardware measurements separate from offline previews.
-
-Hailo deployment, if used by the measurement stage, remains upstream. This
-animation layer itself is deterministic retargeting and morph blending.
+See the ROS package README for its launch configuration, dependencies, map schema
+and test commands. Device validation remains distinct from desktop/CI execution.

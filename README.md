@@ -1,100 +1,88 @@
 # Prootface
 
-Character-mouth animation downstream of OpenSeeFace, for two flat side displays
-in a denser Sigma WS35-style wearable head.
+Continuous character-mouth animation downstream of OpenSeeFace, with wearer
+calibration, causal articulation and two anatomical views for flat displays.
 
-Triwave is the selected visual reference. The latest user direction is to use
-authored phoneme poses as a starting point and improve their blending and timing.
-The current path uses a privately configured authored mesh basis. It preserves
-rest identity, supports clear closures and persistent expression, and avoids
-the rejected raster-ribbon swelling and sideways squash. No tongue or tooth rows.
+The pure Python controller runs at 24 Hz. Character style controls opening
+contrast, observed-motion accents, expression and rounded forward reach.
+Contact interrupts articulation; lost tracking relaxes toward rest. Narrowing
+is a rounding proxy, not independent protrusion or phoneme recognition.
 
-**Working rate: 24 fps.** Mouth-shape changes are deliberately exaggerated:
-stronger silhouette contrast, tight intervening shapes, full opening hits,
-short readable holds and fast transitions.
-The previous ease-out made almost every opening large. The current contrast
-curve preserves quiet shapes and adds brief accents only to observed large
-opening gestures. Closing input cancels an accent immediately.
-The live controller uses only current/past measurements, keeps jaw motion
-responsive during shape holds and preserves brief contacts between output frames.
-Browser refresh does not generate extra interpolated poses.
+## Standalone preview and calibration
 
-## Run
-
-Python 3.10+ and a WebGL browser:
+Python 3.10+:
 
 ```sh
-python -m prootface
+python -m prootface --character /path/to/private/character.json
 ```
 
-Open http://127.0.0.1:8080. Private runtime data consists of
-`local/character.json` and its `.png` texture sidecar. If no character is loaded,
-the UI labels the older contour study as a fallback; that is not the target rig.
-Output-only pages: `/?side=left&display=1` and `/?side=right&display=1`.
+Open http://127.0.0.1:8080. The standalone receiver listens on UDP 11573 by
+default. Do not run it on the same port as an existing ROS receiver. Use the
+five calibration stages to capture neutral, open, wide, narrow and closed smile;
+[calibration details](docs/CALIBRATION.md) explain ranges and tracker baselines.
 
-For live input, OpenSeeFace normally sends UDP to 127.0.0.1:11573. Select another
-port if the existing ROS receiver owns it:
+The browser uses WebGL. `/?side=left&display=1` and
+`/?side=right&display=1` expose individual side views. Schema-2 characters have
+a private JSON mesh plus a PNG texture sidecar. The older contour fallback is
+only a development study, not a replacement for a configured character.
+
+## Headless EGL rendering
+
+Install NumPy and Pillow through the optional extra:
 
 ```sh
-python -m prootface --udp-port 11574 --face-id 0
+python -m pip install -e '.[render]'
 ```
 
-## Private authored-basis import
+Linux also needs EGL, a GLES driver and access to its render device. On a typical
+Mesa system the packages are `libegl1`, `libgles2` and `libgl1-mesa-dri`.
 
-Keep reference assets and settings private. Configuration specifies the mesh,
-emission image/material, side-view calibration and a `targets` map from semantic
-channels to source keys. Semantic channels include open, round, wide, closed,
-side-specific smile/frown/pucker and blink. Nonselected animation is disabled.
-No source-specific names or projection values are embedded in reusable code.
+```python
+from prootface.offscreen import OffscreenRenderer
+from prootface.model import NEUTRAL, Style, pose_from_controls
+
+with OffscreenRenderer('/path/to/private/character.json', 256, 144) as renderer:
+    pose = pose_from_controls(NEUTRAL, Style())
+    atlas = renderer.render_atlas(pose)  # (144, 512, 3), top-left BGR uint8
+    print(renderer.info)                # inspect the actual graphics driver
+```
+
+Create, render and close on the same thread. The renderer uses the compiled
+schema-2 mesh, original UVs, sparse targets, depth and separate side projections.
+It requires neither Blender nor a browser. Mesa may choose a software renderer;
+its availability does not establish performance on another device.
+
+## ROS integration
+
+The implementation is in
+[proto-ros2/prootface_pkg](https://github.com/infopcgood/proto-ros2/tree/master/src/prootface_pkg).
+It consumes the shared `osf_data`, hosts this same calibration UI and publishes
+a synchronized BGR atlas through the existing screen dispatcher. See its README
+for installation, launch arguments and dense-WS LED-map requirements.
+
+[Integration contract](docs/PIPELINE.md) documents input, ownership, frame layout
+and validation. The ROS path does not create a second UDP listener.
+
+## Private character import
+
+Keep model files, source mappings and all generated character data private:
 
 ```sh
 blender --background --factory-startup --disable-autoexec --python tools/import_morph_character.py -- /path/to/model.blend --settings local/character-settings.json --output local/character.json
 ```
 
-The output is private indexed geometry, UVs, sparse target deltas and a texture.
-Do not commit it. The older rest-mask importer/compiler remain for legacy studies.
-
-## Audible speaking review
-
-The example sentence is “Maybe we should move a little closer.” Optional tools
-use local CMU Flite shared libraries, Blender, ffmpeg, NumPy and Pillow:
-
-```sh
-python tools/synthesize_example.py local/sentence
-python tools/render_morph_sentence.py --character local/character.json --output local/review
-```
-
-The native review renderer consumes the same compiled mesh and Python-generated
-blend weights as WebGL. It uses a fixed camera with room for the pose basis.
-The default `--input-mode tracking` sends synthetic camera-supported controls
-through the actual causal controller. Unmeasured consonant hints are disabled.
-The optional `--input-mode authored` is a full scripted pose reference; it is
-not live tracking. Output is exactly 24 fps. Neither mode is a camera recording,
-browser capture or CM4 performance benchmark.
-
-## Model boundaries
-
-Measurement, wearer calibration, character style, time and display projection
-remain separate. Open/round/spread samples use contrasted, bounded weights. A mouth family gets
-a brief minimum exposure while jaw motion continues; contact interrupts it.
-Contact attaches immediately and receives a two-frame minimum exposure. Corner expression holds
-through articulation; lost tracking eases toward rest. Both side displays share
-one timed anatomical state and mirror only at projection.
-
-OpenSeeFace narrowing is a rounding proxy; seal is inferred from lip aperture.
-These are not independent muscle measurements. Specialized consonant controls
-are accepted by the model but are not currently inferred from OpenSeeFace. Actual panel geometry, LED map
-and CM4 performance remain unmeasured. No changes have been made to proto-ros2.
+Private settings map semantic channels to source targets. Optional art-direction
+corrections compile at import time. Runtime only blends sparse targets; it does
+not run Blender, inspect source models or access private import settings.
 
 ## Development
-
-Read [AGENTS.md](AGENTS.md), [design](docs/DESIGN.md), [research](docs/RESEARCH.md),
-[pipeline](docs/PIPELINE.md) and [status](docs/STATUS.md).
 
 ```sh
 python -m unittest discover -s tests -v
 node --test tests/test_geometry.mjs tests/test_character.mjs tests/test_morph_mesh.mjs
 ```
 
-Publish reusable code and generic notes only. Private reference files, mappings,
-inspection notes, derived geometry and review clips remain outside version control.
+Render tests need the optional dependencies and a working EGL driver. ROS tests
+run under Jazzy in the integration repository, using original synthetic fixtures.
+Recorded-video tools are offline diagnostics; a scripted or offline preview is
+not a hardware latency measurement. See [status](docs/STATUS.md).
