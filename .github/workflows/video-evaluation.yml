@@ -22,15 +22,16 @@ jobs:
           python -m pip install numpy==1.26.4 onnxruntime==1.18.1 opencv-python-headless==4.10.0.84 pillow==10.4.0
           sudo apt-get update -qq
           sudo apt-get install -y ffmpeg
-      - name: Download CC0 speech and prepare 24 fps sample
+      - name: Download public-domain speech and prepare 24 fps sample
         run: |
           mkdir -p local/video-evaluation
-          curl --fail --location --retry 3 'https://upload.wikimedia.org/wikipedia/commons/3/3a/Dario_speaking_Fiorentino.webm' -o /tmp/speech.webm
+          curl --fail --location --retry 3 'https://upload.wikimedia.org/wikipedia/commons/a/ae/2016-01-23_President_Obama%27s_Weekly_Address.webm' -o /tmp/speech.webm
           ffmpeg -y -hide_banner -loglevel error -i /tmp/speech.webm -t 28 -vf 'fps=24,scale=640:-2' -c:v libx264 -crf 18 -c:a aac local/video-evaluation/source.mp4
-          printf '%s\n' 'Wikitongues: Dario speaking Fiorentino; CC0 1.0.' 'https://commons.wikimedia.org/wiki/File:Dario_speaking_Fiorentino.webm' 'Excerpt: 0-28 seconds; resampled to 24 fps. Audio retained for comparison only.' > local/video-evaluation/SOURCE.txt
+          printf '%s\n' 'The White House: 2016-01-23 weekly address; U.S. government public domain.' 'https://commons.wikimedia.org/wiki/File:2016-01-23_President_Obama%27s_Weekly_Address.webm' 'Excerpt: 0-28 seconds; resampled to 24 fps. Audio retained for comparison only.' > local/video-evaluation/SOURCE.txt
       - name: Measure chronological video frames
         run: python tools/track_video.py --osf-root /tmp/OpenSeeFace --video local/video-evaluation/source.mp4 --output local/video-evaluation
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: public-speech-measurements
           path: local/video-evaluation/

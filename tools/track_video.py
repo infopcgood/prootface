@@ -81,6 +81,8 @@ def main():
                    note='Offline chronological inference; throughput is not device latency.')
     (args.output / 'tracking.json').write_text(json.dumps(summary, indent=2) + '\n')
     print(json.dumps(summary))
+    if valid < 48:
+        raise RuntimeError('Fewer than two seconds of usable face tracking; choose a clearer clip.')
 
 
 if __name__ == '__main__':
