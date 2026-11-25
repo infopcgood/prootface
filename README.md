@@ -1,14 +1,13 @@
 # Prootface
 
-Natural character-mouth animation downstream of OpenSeeFace, for two flat
-side displays in a Sigma WS35-style wearable head with denser LEDs.
+Character-mouth animation downstream of OpenSeeFace, for two flat side displays
+in a denser Sigma WS35-style wearable head.
 
-**Triwave is the selected static mouth-shape reference.** Preserve the chosen
-rest identity while developing natural opening, backward recession, rounding,
-expression and contact independently. The user explicitly instructed us to
-**ignore avatar phoneme animation keys**. Import tools disable non-rest
-animation and export no animation poses or deltas. No tongue or tooth rows.
-Private reference details, files and derived geometry are not published here.
+Triwave is the selected visual reference. The latest user direction is to use
+authored phoneme poses as a starting point and improve their blending and timing.
+The current path uses a privately configured authored mesh basis. It preserves
+rest identity, supports clear closures and persistent expression, and avoids
+the rejected raster-ribbon swelling and sideways squash. No tongue or tooth rows.
 
 ## Run
 
@@ -18,80 +17,69 @@ Python 3.10+ and a WebGL browser:
 python -m prootface
 ```
 
-Open http://127.0.0.1:8080. If `local/character.json` exists, both anatomical
-sides use the imported rest shape and procedural animation. If absent, the UI
-labels the older original contour study as a fallback. It is not the target
-character. No ML packages, ROS, camera or Hailo runtime are needed for preview.
-
+Open http://127.0.0.1:8080. Private runtime data consists of
+`local/character.json` and its `.png` texture sidecar. If no character is loaded,
+the UI labels the older contour study as a fallback; that is not the target rig.
 Output-only pages: `/?side=left&display=1` and `/?side=right&display=1`.
-OpenSeeFace normally sends to 127.0.0.1:11573; select another port if the existing
-ROS receiver owns it:
+
+For live input, OpenSeeFace normally sends UDP to 127.0.0.1:11573. Select another
+port if the existing ROS receiver owns it:
 
 ```sh
 python -m prootface --udp-port 11574 --face-id 0
 ```
 
-## Import a rest shape privately
+## Private authored-basis import
 
-Keep user reference assets and configuration private. The generic importer
-requires a private JSON settings file specifying the mesh object, emission
-image/material, orthographic camera and anatomical side mapping. It embeds no
-asset-specific object names or projection values. Blender is required; NumPy,
-SciPy, contourpy and Pillow are optional import-tool dependencies.
+Keep reference assets and settings private. Configuration specifies the mesh,
+emission image/material, side-view calibration and a `targets` map from semantic
+channels to source keys. Semantic channels include open, round, wide, closed,
+side-specific smile/frown/pucker and blink. Nonselected animation is disabled.
+No source-specific names or projection values are embedded in reusable code.
 
 ```sh
-blender --background --factory-startup --disable-autoexec --python tools/import_character.py -- /path/to/model.blend --settings local/character-settings.json --output local/character-source
-python tools/compile_character.py local/character-source local/character.json
-python -m prootface --character local/character.json
+blender --background --factory-startup --disable-autoexec --python tools/import_morph_character.py -- /path/to/model.blend --settings local/character-settings.json --output local/character.json
 ```
 
-The compiler expects visible eye, nose and mouth regions per side. This is a
-face-silhouette adapter, not a general avatar converter. Source assets, private
-settings, masks and derived outlines belong under ignored local/ or outside the
-repository. Commit reusable code and generic instructions only.
+The output is private indexed geometry, UVs, sparse target deltas and a texture.
+Do not commit it. The older rest-mask importer/compiler remain for legacy studies.
 
-## Render an audible speaking example
+## Audible speaking review
 
-The review sentence is **“Maybe we should move a little closer.”** It includes
-clear closures and rounded sounds. Optional tools use locally installed CMU
-Flite shared libraries, Node, ffmpeg and Pillow:
+The example sentence is “Maybe we should move a little closer.” Optional tools
+use local CMU Flite shared libraries, Blender, ffmpeg, NumPy and Pillow:
 
 ```sh
 python tools/synthesize_example.py local/sentence
-python tools/render_sentence.py --character local/character.json --output local/preview
+python tools/render_morph_sentence.py --character local/character.json --output local/review
 ```
 
-Output: `local/preview/speaking-example.mp4` (720p, 60 fps, synthesized audio),
-review frames and timing metadata. This runs the actual Python Animator and JS
-character deformation, with software rasterization. It is an authored timing
-example, not captured live tracking or a browser/hardware benchmark. Phone
-TIMES schedule our own overlapping controls; no avatar phoneme shapes are used.
+The native review renderer consumes the same compiled mesh and Python-generated
+blend weights as WebGL. It uses a fixed camera with room for the pose basis.
+This is a synthesized timing study, not a live camera recording, browser capture
+or CM4 performance benchmark. Naturalness still needs visual review.
 
-## Current behavior
+## Model boundaries
 
-- Verified OpenSeeFace binary decoding, signed calibration and local profiles.
-- Separate measurement, wearer normalization, character style and animation.
-- Contact priority, receding opening and persistent independent corner expression.
-- Continuous rest-ribbon deformation and an unlit display rendering path.
-- Speed-adaptive smoothing and tracking-loss relaxation.
-- Shared anatomical state for both displays; mirror only at projection.
-- Schematic WS35 mask and density study. Actual LED map and angles are unmeasured.
+Measurement, wearer calibration, character style, time and display projection
+remain separate. Open/round/spread samples blend continuously with nonnegative
+weights. Contact takes priority and releases promptly. Corner expression holds
+through articulation; lost tracking eases toward rest. Both side displays share
+one timed anatomical state and mirror only at projection.
 
-Rounding is inferred from narrowing; seal is inferred from visible lip aperture.
-These are not independently measured muscle controls. Naturalness still needs
-visual review and real wearer recordings. CM4 performance is unmeasured.
+OpenSeeFace narrowing is a rounding proxy; seal is inferred from lip aperture.
+These are not independent muscle measurements. Actual panel geometry, LED map
+and CM4 performance remain unmeasured. No changes have been made to proto-ros2.
 
-## Continue development
+## Development
 
-Read [AGENTS.md](AGENTS.md), [design](docs/DESIGN.md),
-[research](docs/RESEARCH.md), [existing pipeline](docs/PIPELINE.md), and
-[status / next steps](docs/STATUS.md).
+Read [AGENTS.md](AGENTS.md), [design](docs/DESIGN.md), [research](docs/RESEARCH.md),
+[pipeline](docs/PIPELINE.md) and [status](docs/STATUS.md).
 
 ```sh
 python -m unittest discover -s tests -v
-node --test tests/test_geometry.mjs tests/test_character.mjs
+node --test tests/test_geometry.mjs tests/test_character.mjs tests/test_morph_mesh.mjs
 ```
 
-The existing `infopcgood/proto-ros2` pipeline was inspected and left unchanged.
-Future integration should consume its `/osf_data` and preserve screen ownership.
-Prioritize the animation before transport or hardware changes.
+Publish reusable code and generic notes only. Private reference files, mappings,
+inspection notes, derived geometry and review clips remain outside version control.

@@ -3,7 +3,7 @@
 export const clamp = (x, a=0, b=1) => Math.max(a, Math.min(b, x));
 const mix = (a,b,t) => a+(b-a)*t;
 const smooth = (a,b,x) => { const t=clamp((x-a)/(b-a)); return t*t*(3-2*t); };
-export const DEFAULT_STYLE = {max_jaw_angle:.36,recession:.12,opening_gamma:1.22,
+export const DEFAULT_STYLE = {max_jaw_angle:.36,recession:.12,opening_gamma:.85,
   max_corner_lift:.20,asymmetry:.7,v_depth:.11,v_position:.88,v_width:.045,lip_thickness:.016};
 export const REST = {opening:0,aperture:0,rounding:0,spread:0,seal:1,tension:0,
   jaw_angle:0,jaw_recession:0,width_scale:1,corner_left:0,corner_right:0,

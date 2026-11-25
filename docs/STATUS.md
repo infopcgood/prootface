@@ -2,72 +2,75 @@
 
 ## Latest direction
 
-Triwave is the static shape reference. Preserve the chosen rest identity and
-improve natural articulation independently. The user explicitly instructed us
-to IGNORE avatar phoneme animation keys and requested an audible animated
-sentence preview after the motion work. A temporary pause to locate a reference
-was superseded by that instruction.
+The user criticized the first animation as not looking like proper animation,
+then explicitly instructed us to use authored phoneme poses as a starting point.
+This supersedes the earlier request to ignore those keys. Continue toward
+natural articulation while preserving the chosen visual identity.
 
-Target: CM4 + Hailo-8, denser Sigma WS35 side displays, OpenSeeFace measurement.
-Prioritize motion; defer hardware/transport integration. No tongue or tooth rows.
+Hardware: CM4 + Hailo-8, denser Sigma WS35 side displays. OpenSeeFace measures
+the wearer. Prioritize animation; leave hardware and ROS integration until later.
+No tongue or tooth rows. Keep reference data and inspection notes private.
 
-## Privacy boundary
+## Visual failures found
 
-Reference source files, identifiers, structural details, inspection observations,
-private settings, masks, derived contours and rendered user previews are kept
-out of this public repository. Reusable tooling accepts private configuration;
-it must not embed source-specific object/material names or camera calibration.
-Keep configuration and generated character data under ignored local/.
+The legacy raster-ribbon path inflated a closed symbol, retained an angular
+lower crease, shifted the whole design sideways and clipped some openings.
+Slow filtering plus a squared seal gate also swallowed short vowel openings.
+Those failures were confirmed by enlarged frame review and tracing controls.
+Do not present the legacy path or test counts as evidence of naturalness.
 
-## Implemented
+An automatic contour-corrective trial produced tearing and was discarded.
+The current baseline preserves authored topology and uses bounded blend weights.
 
-- Generic configured rest-shape importer, with non-rest animation disabled.
-  No avatar animation poses/deltas are exported.
-- Rest-mask compiler for one visible eye, nose and mouth per side. It derives
-  normalized front/rear and lower-ribbon coordinates for procedural deformation.
-- web/character.mjs: independently developed opening, backward recession,
-  rounding, corner lift and contact priority. Concave silhouettes triangulate
-  after deformation. Full contact restores the selected rest design.
-- WebGL unlit rendering through /api/character and --character. If no private
-  character file exists, the original contour fallback is explicitly labeled.
-- performance.py: independent overlapping semantic gestures for an offline
-  example. Speech TIMESTAMPS schedule controls; avatar phoneme SHAPES are unused.
-- Optional speech synthesis and 60 fps video-review tools. They use the actual
-  Python Animator and JS deformation, with software rasterization. A speaking
-  example was generated and saved privately for user review.
+## Current implementation
 
-## Earlier core retained
-
-OpenSeeFace 1785-byte decoding, face selection, robust signed calibration,
-contact-aware retargeting, adaptive temporal filtering, monotonic staleness and
-tracking-loss relaxation. Both displays share one timed semantic pose and retain
-independent anatomical corner expression.
-
-Existing infopcgood/proto-ros2 was inspected without modifications. See
-PIPELINE.md for its existing topics/messages and intended insertion point.
+- Generic private morph import: indexed geometry, UVs, configured sparse pose
+  targets, emission texture and fixed view bounded across the mouth basis.
+- Schema-2 renderer: continuous authored-mesh blendspace with proper occlusion,
+  anatomical side depth and texture sampling. Older silhouette mode is legacy.
+- Nonnegative open/round/spread weights form a convex primary mouth basis.
+  Opening has a stronger bounded response. Expressions and blinks are separate.
+- Contact suppresses opening exactly and detaches with an 8 ms time constant.
+  The additional squared seal gate was removed.
+- Native review tools render the same private compiled mesh and Python-generated
+  weights as the WebGL path. They do not require source-specific names in code.
+- Current private runtime files use the authored-mesh format under ignored local/.
+  Public code contains no source assets, private mappings or derived geometry.
 
 ## Verification
 
-- Python unittest: 19 passed.
-- Node geometry/character tests: 10 passed.
-- Syntax/compile checks and CLI/HTTP smoke passed.
-- The review output contains H.264 video and AAC audio and was visually inspected.
-- Browser execution and physical-panel appearance remain unverified. A working
-  browser executable is unavailable here. CM4 performance is unmeasured.
-- These checks do not establish perceptual naturalness; user review is required.
+- Python unittest: 22 passed.
+- Node geometry/character/morph tests: 13 passed.
+- Tests include convex weights, closed/full authored endpoints, prompt contact
+  release, sparse pose application, unchanged source data and side projection.
+- CLI/HTTP smoke passed for the authored rig, texture endpoint, renderer modules
+  and both side-output routes. All rendered face pixels stayed inside the
+  fixed review frame throughout the new clip.
+- Enlarged render sequences were inspected; tearing trials were rejected.
+- Browser runtime and physical-panel appearance remain unverified. CM4 latency
+  and frame rate are unmeasured. Tests do not establish perceptual naturalness.
 
-## Repository
+## Earlier core and integration
 
-https://github.com/infopcgood/prootface, branch master. Previous checkpoint:
-e405a6d5bd3273153f4877f0499ccf407db04fb3. This revision publishes reusable tools,
-animation code, tests and generic documentation only. Reference-derived data
-and private inspection notes must not be copied into a public update.
+OpenSeeFace binary decoding, face selection, signed robust calibration,
+monotonic freshness and tracking-loss relaxation remain independently usable.
+See PIPELINE.md for the existing proto-ros2 path; that repository is unchanged.
+Future integration should consume its existing measurements and preserve screen
+ownership rather than starting another production UDP receiver.
+
+## Repository and privacy
+
+Public project: https://github.com/infopcgood/prootface, branch master.
+Previous checkpoint: 3bb66f0b3c80cf690865edeb23da9193bd298317.
+Publish generic code, tests and documentation only. Private source identifiers,
+object/key names, settings, textures, meshes and inspection notes stay out of
+public commits. Use an expected branch SHA and preserve concurrent changes.
 
 ## Next
 
-1. Review the actual speaking animation while preserving the chosen rest shape.
-2. Refine continuous opening/rounding/contact and corner timing from feedback.
-   Never reintroduce avatar phoneme keys as a shortcut.
-3. Capture real wearer speech through OpenSeeFace and tune calibration separately.
-4. Exercise both sides in a real browser, then on the visor.
-5. Only then add proto-ros2 adaptation, measured LED mapping and CM4 profiling.
+1. Review the authored-basis speaking animation against the earlier failure.
+2. Refine intermediate poses and timing from visual feedback; do not assume
+   that either raw source poses or a passing-test count establish naturalness.
+3. Test the same model with real OpenSeeFace wearer speech and tune calibration.
+4. Exercise both sides in a real browser and on the visor.
+5. Only then add measured LED mapping, ROS adaptation and CM4 profiling.

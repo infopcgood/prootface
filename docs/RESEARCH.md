@@ -19,10 +19,11 @@ identity, structural details, projected masks, derived contours and inspection
 notes remain private. The public implementation contains generic rest-silhouette
 processing and independent deformation, not a copy of a reference asset.
 
-The user explicitly instructed us to ignore the avatar's crudely animated
-phoneme keys. Import tools disable non-rest animation, and no avatar animation
-delta is exported. The selected rest identity takes precedence over earlier
-placeholder contours.
+The user initially asked to ignore avatar phoneme animation keys, then explicitly
+revised that direction after the first animation review: authored phoneme poses
+are a better starting point. The current importer accepts a privately configured
+pose basis. Source-specific key names and target data remain private. Runtime
+uses continuous semantic blending rather than abrupt phoneme-name switches.
 
 The first implementation's thick, metallic/ribbed lip strips were explicitly
 rejected by the user as terrifying. They are not an acceptable direction. The
@@ -103,10 +104,20 @@ requires actual captured performances and human review.
 The example sentence is “Maybe we should move a little closer.” CMU Flite's
 SLT voice produces audio and timestamped segments through its public C API
 ([official headers](https://github.com/festvox/flite/blob/master/include/flite.h)).
-Timestamps schedule independently overlapped opening, width and contact
-gestures. They never select the avatar's phoneme keys. Rounding prepares before
-its sound, contact overrides vowel blending, and expression holds through
-the phrase. The actual Python Animator and JS character deformation generate
-the 60 fps clip. Pillow rasterization is used for reproducible review, not a
-claim of tested browser or CM4 rendering.
+Timestamps schedule overlapping opening, width and contact controls. The same
+controls can come from the live OpenSeeFace path; the character model maps them
+to a configured authored basis. Closure overrides opening without erasing
+persistent corner expression.
 
+The first raster-ribbon animation failed visual review. Its lower contour
+inflated and retained a crease, uniform width scaling moved the design sideways,
+and insufficient framing clipped some openings. Applying a slower jaw filter
+to seal release also suppressed short vowel openings. Those are implementation
+failures, not evidence that the reference design is unsuitable.
+
+The current path blends authored mesh samples, preserves UVs and occlusion,
+uses a fixed view bounded over the pose basis, and gives contact a faster detach
+response. Preview rendering consumes the same private mesh and Python-generated
+weights as the WebGL path. It is not a browser or CM4 capture. Automatic affine
+contour corrections were rejected after they produced visible tearing; do not
+revive them as an assumed improvement over authored geometry.

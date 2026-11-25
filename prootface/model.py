@@ -10,7 +10,7 @@ from .openseeface import Measurement
 class Style:
     max_jaw_angle: float = 0.36
     recession: float = 0.12
-    opening_gamma: float = 1.22
+    opening_gamma: float = 0.85
     max_corner_lift: float = 0.20
     asymmetry: float = 0.70
     v_depth: float = 0.11
@@ -57,8 +57,27 @@ def pose_from_controls(controls: dict[str, float], style: Style) -> dict:
         f"corner_{side}_render": average + style.asymmetry * (c[f"corner_{side}"] - average)
         for side in ("left", "right")
     }
-    visible = c["opening"] ** style.opening_gamma * (1 - c["seal"]) ** 2
-    return {**c, **rendered_corners, "aperture": visible, "jaw_angle": style.max_jaw_angle * visible,
+    visible = c["opening"] ** style.opening_gamma * (1 - c["seal"])
+    # Ease into the readable part of an authored opening sample. The source
+    # feature is calibrated movement, not a physical percentage of mesh travel.
+    strength = clamp(visible*style.max_jaw_angle/.36)
+    articulation = strength*(2-strength)
+    # Authored pose samples form a convex mouth basis. Width changes select
+    # articulation, rather than squashing the entire closed silhouette.
+    rounding, spreading = c['rounding'], c['spread']
+    total = max(1.0, rounding+spreading)
+    rounded, wide = rounding/total, spreading/total
+    neutral = max(0.0,1-rounded-wide)
+    blends = dict(blend_open=articulation*neutral,
+                  blend_round=articulation*rounded, blend_wide=articulation*wide,
+                  blend_closed=c['seal']*min(.45,c['opening']*.8))
+    for side in ('left','right'):
+        corner=rendered_corners[f'corner_{side}_render']
+        blends[f'blend_smile_{side}']=max(0,corner)*.55
+        blends[f'blend_frown_{side}']=max(0,-corner)*.45
+        blends[f'blend_pucker_{side}']=rounding*(1-visible)*.12
+        blends[f'blend_blink_{side}']=1-c[f'eye_{side}']
+    return {**c, **rendered_corners, **blends, "aperture": visible, "jaw_angle": style.max_jaw_angle * visible,
             "jaw_recession": style.recession * visible,
             "width_scale": clamp(1 + 0.10 * c["spread"] - 0.28 * c["rounding"], 0.65, 1.10)}
 
@@ -88,6 +107,10 @@ class Animator:
             mouth = k in ("opening", "rounding", "spread", "seal")
             cutoff = (5.0 if mouth else 2.8) + (.7 if mouth else .3)*abs(self.derivative[k])
             tau = 1/(2*math.pi*cutoff) if tracked else .14
+            if tracked and k == 'seal':
+                # Contact can attach quickly, and must detach promptly as well.
+                # Reusing the jaw low-pass here swallowed short vowel openings.
+                tau = .008 if value < old else .012
             self.controls[k] += (value - old) * (1 - math.exp(-dt / tau))
         if tracked and clean["seal"] >= 0.98:
             # Contact priority prevents filtering or smile correctives leaking a gap.

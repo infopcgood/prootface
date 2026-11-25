@@ -2,20 +2,20 @@ import {buildMouth,WS_STUDY_MASK} from './mouth.mjs';
 import {buildCharacter} from './character.mjs';
 
 const VS=`
-attribute vec3 position;attribute vec3 normal;attribute vec4 color;
+attribute vec3 position;attribute vec3 normal;attribute vec4 color;attribute vec2 texcoord;
 uniform float mirror;uniform float yaw;uniform float zoom;uniform vec2 offset;
-varying vec3 vNormal;varying vec3 vPosition;varying vec4 vColor;varying vec2 vUV;
+varying vec3 vNormal;varying vec3 vPosition;varying vec4 vColor;varying vec2 vUV;varying vec2 vTexcoord;
 void main(){
  float c=cos(yaw),s=sin(yaw);mat3 rot=mat3(c,0.,-s,0.,1.,0.,s,0.,c);
- vec3 p=rot*position;vNormal=rot*normal;vPosition=p;vColor=color;
+ vec3 p=rot*position;vNormal=rot*normal;vPosition=p;vColor=color;vTexcoord=texcoord;
  vec2 clip=vec2(p.x/1.88,(p.y+.14)/1.16)*zoom+offset;
  vUV=vec2(clip.x*.5+.5,.5-clip.y*.5);
  gl_Position=vec4(clip.x*mirror,clip.y,-p.z*.25,1.);
 }`;
 const FS=`
 precision mediump float;
-uniform bool maskEnabled;uniform bool unlit;uniform vec2 polygon[6];uniform float grid;
-varying vec3 vNormal;varying vec3 vPosition;varying vec4 vColor;varying vec2 vUV;
+uniform bool maskEnabled;uniform bool unlit;uniform bool textured;uniform sampler2D emissionMap;uniform vec2 polygon[6];uniform float grid;
+varying vec3 vNormal;varying vec3 vPosition;varying vec4 vColor;varying vec2 vUV;varying vec2 vTexcoord;
 bool crosses(vec2 p,vec2 a,vec2 b){return (a.y>p.y)!=(b.y>p.y)&&p.x<(b.x-a.x)*(p.y-a.y)/(b.y-a.y)+a.x;}
 bool inside(vec2 p){bool v=crosses(p,polygon[0],polygon[5]);
  v=v!=crosses(p,polygon[1],polygon[0]);v=v!=crosses(p,polygon[2],polygon[1]);
@@ -31,6 +31,7 @@ void main(){
  if(unlit)diffuse=1.;
  float shine=0.;
  vec3 rgb=vColor.rgb*diffuse+vec3(shine)*min(1.,length(vColor.rgb)*2.);
+ if(textured)rgb*=texture2D(emissionMap,vTexcoord).rgb;
  if(grid>0.){vec2 g=fract(vUV*vec2(grid,grid*.56));float dotMask=1.-smoothstep(.32,.48,length(g-.5));rgb*=.25+.75*dotMask;}
  gl_FragColor=vec4(rgb,vColor.a);
 }`;
@@ -38,6 +39,7 @@ void main(){
 export class Renderer{
  constructor(canvas,side,character=null){
   this.canvas=canvas;this.side=side;this.character=character;this.options={mask:true,grid:0,yaw:0,zoom:1,offset:[0,0]};
+  if(character?.schema===2){Object.assign(this.options,character.view);this.options.mask=false;}
   const gl=canvas.getContext('webgl',{antialias:true,alpha:false,preserveDrawingBuffer:true});
   if(!gl)throw Error('WebGL is required for the dimensional mouth preview');this.gl=gl;
   const shader=(type,source)=>{const s=gl.createShader(type);gl.shaderSource(s,source);gl.compileShader(s);
@@ -45,9 +47,21 @@ export class Renderer{
   this.program=gl.createProgram();gl.attachShader(this.program,shader(gl.VERTEX_SHADER,VS));
   gl.attachShader(this.program,shader(gl.FRAGMENT_SHADER,FS));gl.linkProgram(this.program);
   if(!gl.getProgramParameter(this.program,gl.LINK_STATUS))throw Error(gl.getProgramInfoLog(this.program));
-  this.buffers=['position','normal','color'].map(name=>({name,buffer:gl.createBuffer(),loc:gl.getAttribLocation(this.program,name)}));
-  this.uniforms=Object.fromEntries(['mirror','yaw','zoom','offset','maskEnabled','unlit','polygon[0]','grid'].map(k=>[k,gl.getUniformLocation(this.program,k)]));
+  this.buffers=['position','normal','color','texcoord'].map(name=>({name,buffer:gl.createBuffer(),loc:gl.getAttribLocation(this.program,name)}));
+  this.uniforms=Object.fromEntries(['mirror','yaw','zoom','offset','maskEnabled','unlit','textured','emissionMap','polygon[0]','grid'].map(k=>[k,gl.getUniformLocation(this.program,k)]));
   gl.enable(gl.DEPTH_TEST);gl.enable(gl.BLEND);gl.blendFunc(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA);
+  this.texture=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,this.texture);
+  gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,1,1,0,gl.RGBA,gl.UNSIGNED_BYTE,new Uint8Array([255,255,255,255]));
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);
+  this.textureReady=false;
+  if(character?.schema===2){
+   const source=new Image();
+   source.onload=()=>{gl.bindTexture(gl.TEXTURE_2D,this.texture);gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL,true);
+    gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,source);
+    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
+    this.textureReady=true;};source.src='/api/character-texture';
+  }
  }
  draw(pose,style){
   const gl=this.gl,c=this.canvas;const dpr=Math.min(2,window.devicePixelRatio||1);
@@ -58,12 +72,15 @@ export class Renderer{
   gl.uniform1f(u.mirror,this.side==='left'?-1:1);gl.uniform1f(u.yaw,o.yaw);gl.uniform1f(u.zoom,o.zoom);
   gl.uniform2fv(u.offset,o.offset);gl.uniform1i(u.maskEnabled,o.mask);gl.uniform1f(u.grid,o.grid);
   gl.uniform2fv(u['polygon[0]'],WS_STUDY_MASK.flat());
+  gl.activeTexture(gl.TEXTURE0);if(this.texture)gl.bindTexture(gl.TEXTURE_2D,this.texture);gl.uniform1i(u.emissionMap,0);
   const mesh=this.character?buildCharacter(this.character,pose,style,this.side):buildMouth(pose,style,this.side);this.lastMesh=mesh;
   for(const part of mesh.parts){
+   if(part.textured&&!this.textureReady)continue;
    gl.uniform1i(u.unlit,Boolean(part.unlit));
-   for(const [i,key] of ['positions','normals','colors'].entries()){
-    const b=this.buffers[i];gl.bindBuffer(gl.ARRAY_BUFFER,b.buffer);gl.bufferData(gl.ARRAY_BUFFER,part[key],gl.DYNAMIC_DRAW);
-    gl.enableVertexAttribArray(b.loc);gl.vertexAttribPointer(b.loc,i===2?4:3,gl.FLOAT,false,0,0);
+   gl.uniform1i(u.textured,Boolean(part.textured));
+   for(const [i,key] of ['positions','normals','colors','uvs'].entries()){
+    const b=this.buffers[i];gl.bindBuffer(gl.ARRAY_BUFFER,b.buffer);gl.bufferData(gl.ARRAY_BUFFER,part[key]??new Float32Array(part.positions.length/3*2),gl.DYNAMIC_DRAW);
+    gl.enableVertexAttribArray(b.loc);gl.vertexAttribPointer(b.loc,i===2?4:i===3?2:3,gl.FLOAT,false,0,0);
    }
    gl.drawArrays(gl.TRIANGLES,0,part.positions.length/3);
   }

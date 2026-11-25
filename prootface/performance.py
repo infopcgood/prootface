@@ -1,14 +1,14 @@
-"""Offline speaking example, independent of avatar animation/phoneme keys.
+"""Offline speaking timing for semantic character controls.
 
-Synthesized-phone TIMES schedule continuous semantic gestures for a review
-clip. Live operation still uses OpenSeeFace, never these phone labels. This is
-an authored demonstration, not learned lip sync or a naturalness benchmark.
+Phone times schedule opening, rounding, spreading and contact. The character
+model blends a privately configured authored pose basis continuously. Live
+operation still uses OpenSeeFace; this is a timed synthetic review performance.
 """
 import math
 from .model import NEUTRAL
 
 # Opening, rounding and spreading are independently overlapped. These targets
-# never select an avatar viseme or stored mouth pose.
+# contain no source-specific key names or abrupt avatar-pose switches.
 _TARGETS = {
     'aa':(.72,0,.05), 'ae':(.62,0,.3), 'ah':(.52,0,.05),
     'aw':(.60,.3,0), 'ax':(.28,0,0), 'eh':(.45,0,.35),
@@ -58,6 +58,8 @@ class SpeakingExample:
         controls.update(corner_left=.24, corner_right=.20)
         if seconds < 0 or seconds > self.duration:
             return controls
+        blink = _window(seconds,.07,.105,0,.045,.055)
+        controls['eye_left'] = controls['eye_right'] = 1-blink
         for column, key in enumerate(('opening','rounding','spread')):
             lead = .075 if key == 'rounding' else .028
             weighted, total = 0.0, 0.0

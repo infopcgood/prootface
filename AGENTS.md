@@ -9,8 +9,11 @@
   retargeting, temporal animation and display geometry.
 - The user selected Triwave as the visual mouth-shape reference, while retaining
   natural Nick/Zootopia-informed articulation as the motion goal.
-- Latest explicit instruction: IGNORE avatar phoneme animation keys. Preserve
-  the chosen rest design and develop continuous motion independently.
+- Latest explicit user correction: use the avatar's authored phoneme poses as
+  a starting point. This supersedes the earlier instruction to ignore them.
+  Preserve the chosen rest identity, curate an authored basis, and improve
+  continuous blending, contact timing and pose response. Do not switch poses
+  abruptly or treat the source keys as a finished performance.
 - No tongue, tooth rows or detached fangs. Do not return to the rejected thick
   metallic/ribbed lip strips. The supplied rest identity takes precedence over
   earlier provisional geometry and approximate notch-placement descriptions.
@@ -25,9 +28,10 @@
   Reusable code must accept settings instead of embedding private-source details.
 - Public research notes may cite public sources and record general techniques.
   Do not copy private inspection notes into them.
-- The generic importer zeros every non-rest animation key and exports no avatar
-  animation deltas. Offline speech timestamps may schedule our independent
-  semantic gestures, but must never select avatar phoneme shapes.
+- The current generic morph importer exports only the privately configured pose
+  basis and texture. Nonselected animation stays disabled. Source-specific key
+  names live in private settings, never reusable code. The old rest-mask tool
+  is retained as a legacy study, not the current animation method.
 
 ## Animation boundaries
 
@@ -52,6 +56,10 @@
   modify that repository without a task requiring it. Preserve screen ownership.
 - The user requested a real animated, audible sentence preview. A static image
   or passing test count is not a replacement. Naturalness requires visual review.
+- The first ribbon animation was rejected: it inflated a closed symbol, slid
+  it sideways and clipped lower openings. Do not revive it as the target rig.
+  Review enlarged mouth frames and the actual motion before sharing another
+  preview. Discard deformations that cause tearing or occlusion artifacts.
 - Keep private preview outputs outside version control. Do not claim CM4 or
   browser performance was measured until it actually is.
 - Update docs/STATUS.md at milestones/interruption. Add useful tests for protocol,

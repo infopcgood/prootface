@@ -34,6 +34,8 @@ def main():
         parser.error('Use 12–120 fps and .5–2 speech speed')
     args.output.mkdir(parents=True, exist_ok=True)
     character = json.loads(args.character.read_text())
+    if character.get('schema') != 1:
+        parser.error('Legacy silhouette renderer only; use tools/render_morph_sentence.py for an authored mesh')
     example = SpeakingExample(json.loads((args.speech/'phonemes.json').read_text()))
     before, after = .65, .85
     duration = before+example.duration/args.speed+after

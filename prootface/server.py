@@ -159,7 +159,10 @@ def serve(args):
 
         def do_GET(self):
             path = urlsplit(self.path).path
-            if path == "/api/character":
+            if path == "/api/character-texture":
+                texture = Path(getattr(args, 'character', 'local/character.json')).with_suffix('.png')
+                self.respond(200, texture.read_bytes(), 'image/png') if texture.is_file() else self.respond(404, '{"error":"No character texture"}')
+            elif path == "/api/character":
                 character = Path(getattr(args, 'character', 'local/character.json'))
                 self.respond(200, character.read_bytes() if character.is_file() else b'null')
             elif path == "/api/state":

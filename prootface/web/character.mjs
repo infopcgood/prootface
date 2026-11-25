@@ -1,5 +1,6 @@
 // Procedural motion of a USER-SUPPLIED rest silhouette. No avatar viseme keys.
 import {clamp,DEFAULT_STYLE,REST} from './mouth.mjs';
+import {buildMorphCharacter} from './morph-character.mjs';
 const ease=x=>{x=clamp(x);return x*x*(3-2*x);};
 const cross=(a,b,c)=>(b[0]-a[0])*(c[1]-a[1])-(b[1]-a[1])*(c[0]-a[0]);
 export const signedArea=points=>points.reduce((a,p,i)=>{
@@ -57,6 +58,7 @@ export function deformPart(part,pose,style={},side='right'){
 }
 
 export function buildCharacter(character,pose,style={},side='right'){
+ if(character.schema===2)return buildMorphCharacter(character,pose,side);
  if(character.schema!==1||!character.sides?.[side])throw Error('Unsupported character data');
  const source=character.sides[side],color=character.color??[.2,.8,1,1];
  const parts=source.parts.map(part=>{
