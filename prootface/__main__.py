@@ -10,6 +10,8 @@ def main():
     parser.add_argument("--udp-port", type=int, default=11573)
     parser.add_argument("--face-id", type=int, default=0)
     parser.add_argument("--profile", default="local/calibration.json")
+    parser.add_argument("--character", default="local/character.json",
+                        help="Private compiled rest silhouette; original study used if absent")
     args = parser.parse_args()
     serve(args)
 

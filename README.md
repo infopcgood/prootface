@@ -1,78 +1,97 @@
 # Prootface
 
-The character model downstream of OpenSeeFace for a wearable protogen head.
+Natural character-mouth animation downstream of OpenSeeFace, for two flat
+side displays in a Sigma WS35-style wearable head with denser LEDs.
 
-The target is a **naturally animated mouth** with controlled lip contact,
-lower-jaw recession and expression-preserving articulation. It is inspired by
-the design principles discussed by Zootopia's animators, not a copy of Nick's
-character or mesh. There is **no tongue or tooth row**. One V-shaped point is
-integrated into the posterior/eye-side lip contour of each side.
+**Triwave is the selected static mouth-shape reference.** Preserve the chosen
+rest identity while developing natural opening, backward recession, rounding,
+expression and contact independently. The user explicitly instructed us to
+**ignore avatar phoneme animation keys**. Import tools disable non-rest
+animation and export no animation poses or deltas. No tongue or tooth rows.
+Private reference details, files and derived geometry are not published here.
 
-**Latest visual direction:** use Triwave's protogen as the mouth-shape reference,
-while building richer articulation than its limited VRChat animation. The user
-explicitly rejected the first thick metallic lip-strip render. That appearance
-has been removed. Current clean contours are provisional, not an accepted
-replacement or a copy/extraction of Triwave's mesh.
+## Run
 
-The physical reference is **Coela Can't's Sigma WS35 layout**, adapted to a
-denser LED panel. The current WS35 silhouette is a schematic placement study;
-panel dimensions, pitch, LED coordinates and mount angles are not assumed.
-
-## Try the motion study
-
-Python 3.10+ and a browser supporting WebGL are sufficient. No ML packages,
-ROS, camera, Hailo runtime, npm install or cloud service are needed for preview.
+Python 3.10+ and a WebGL browser:
 
 ```sh
 python -m prootface
 ```
 
-Open http://127.0.0.1:8080. Use **Performance study**, **Pose controls**, or
-**OpenSeeFace**. Output-only pages are `/?side=left&display=1` and
-`/?side=right&display=1`. Both use one shared pose, with anatomical asymmetry.
+Open http://127.0.0.1:8080. If `local/character.json` exists, both anatomical
+sides use the imported rest shape and procedural animation. If absent, the UI
+labels the older original contour study as a fallback. It is not the target
+character. No ML packages, ROS, camera or Hailo runtime are needed for preview.
 
-For live input, configure OpenSeeFace to send its ordinary UDP output to
-127.0.0.1:11573. This receiver and proto-ros2's existing receiver cannot bind
-the same UDP port simultaneously. The standalone receiver is for preview;
-the future ROS integration should consume existing `/osf_data` instead.
+Output-only pages: `/?side=left&display=1` and `/?side=right&display=1`.
+OpenSeeFace normally sends to 127.0.0.1:11573; select another port if the existing
+ROS receiver owns it:
 
 ```sh
 python -m prootface --udp-port 11574 --face-id 0
 ```
 
-Wearer calibration captures neutral, opening, spreading, narrowing and closed
-smile samples. Click each stage, hold it briefly, then stop capture. Save only
-after every stage has at least eight valid frames. The profile is stored at
-`local/calibration.json`, outside version control. Camera/landmark recordings
-are not written by default.
+## Import a rest shape privately
 
-## What the prototype does
+Keep user reference assets and configuration private. The generic importer
+requires a private JSON settings file specifying the mesh object, emission
+image/material, orthographic camera and anatomical side mapping. It embeds no
+asset-specific object names or projection values. Blender is required; NumPy,
+SciPy, contourpy and Pillow are optional import-tool dependencies.
 
-- Verified OpenSeeFace binary packet decoding and signed feature mapping.
-- Robust wearer normalization, contact-aware retargeting and time-based easing.
-- A clean profile-contour model with a recessed cavity, independent of display density.
-- A receding lower lip/jaw arc and one attached rear V point per side.
-- Persistent corner lift during articulation; closure wins over opening.
-- A dual-view WebGL study with a schematic WS35 mask and density preview.
-- Graceful relaxation after tracking loss and manual controls for art direction.
+```sh
+blender --background --factory-startup --disable-autoexec --python tools/import_character.py -- /path/to/model.blend --settings local/character-settings.json --output local/character-source
+python tools/compile_character.py local/character-source local/character.json
+python -m prootface --character local/character.json
+```
 
-This is an editable motion prototype, not a production-quality organic face,
-an inference model, or a hardware driver. OpenSeeFace narrowing is used only
-as a **rounding proxy**. Lip seal is **inferred from visible aperture**, not
-independently measured pressure. Tongue tracking and phoneme classification
-are outside scope. CM4 performance is not yet measured.
+The compiler expects visible eye, nose and mouth regions per side. This is a
+face-silhouette adapter, not a general avatar converter. Source assets, private
+settings, masks and derived outlines belong under ignored local/ or outside the
+repository. Commit reusable code and generic instructions only.
+
+## Render an audible speaking example
+
+The review sentence is **“Maybe we should move a little closer.”** It includes
+clear closures and rounded sounds. Optional tools use locally installed CMU
+Flite shared libraries, Node, ffmpeg and Pillow:
+
+```sh
+python tools/synthesize_example.py local/sentence
+python tools/render_sentence.py --character local/character.json --output local/preview
+```
+
+Output: `local/preview/speaking-example.mp4` (720p, 60 fps, synthesized audio),
+review frames and timing metadata. This runs the actual Python Animator and JS
+character deformation, with software rasterization. It is an authored timing
+example, not captured live tracking or a browser/hardware benchmark. Phone
+TIMES schedule our own overlapping controls; no avatar phoneme shapes are used.
+
+## Current behavior
+
+- Verified OpenSeeFace binary decoding, signed calibration and local profiles.
+- Separate measurement, wearer normalization, character style and animation.
+- Contact priority, receding opening and persistent independent corner expression.
+- Continuous rest-ribbon deformation and an unlit display rendering path.
+- Speed-adaptive smoothing and tracking-loss relaxation.
+- Shared anatomical state for both displays; mirror only at projection.
+- Schematic WS35 mask and density study. Actual LED map and angles are unmeasured.
+
+Rounding is inferred from narrowing; seal is inferred from visible lip aperture.
+These are not independently measured muscle controls. Naturalness still needs
+visual review and real wearer recordings. CM4 performance is unmeasured.
 
 ## Continue development
 
 Read [AGENTS.md](AGENTS.md), [design](docs/DESIGN.md),
 [research](docs/RESEARCH.md), [existing pipeline](docs/PIPELINE.md), and
-[current status / next steps](docs/STATUS.md).
+[status / next steps](docs/STATUS.md).
 
 ```sh
 python -m unittest discover -s tests -v
-node --test tests/test_geometry.mjs
+node --test tests/test_geometry.mjs tests/test_character.mjs
 ```
 
-All source and procedural geometry in this initial implementation are original.
-Third-party art and CAD are linked as references, not bundled or traced.
-
+The existing `infopcgood/proto-ros2` pipeline was inspected and left unchanged.
+Future integration should consume its `/osf_data` and preserve screen ownership.
+Prioritize the animation before transport or hardware changes.

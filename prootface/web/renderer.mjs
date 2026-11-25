@@ -1,4 +1,5 @@
 import {buildMouth,WS_STUDY_MASK} from './mouth.mjs';
+import {buildCharacter} from './character.mjs';
 
 const VS=`
 attribute vec3 position;attribute vec3 normal;attribute vec4 color;
@@ -13,7 +14,7 @@ void main(){
 }`;
 const FS=`
 precision mediump float;
-uniform bool maskEnabled;uniform vec2 polygon[6];uniform float grid;
+uniform bool maskEnabled;uniform bool unlit;uniform vec2 polygon[6];uniform float grid;
 varying vec3 vNormal;varying vec3 vPosition;varying vec4 vColor;varying vec2 vUV;
 bool crosses(vec2 p,vec2 a,vec2 b){return (a.y>p.y)!=(b.y>p.y)&&p.x<(b.x-a.x)*(p.y-a.y)/(b.y-a.y)+a.x;}
 bool inside(vec2 p){bool v=crosses(p,polygon[0],polygon[5]);
@@ -27,6 +28,7 @@ void main(){
  vec3 n=normalize(vNormal);if(n.z<0.)n=-n;
  vec3 light=normalize(vec3(-.4,.8,1.3));
  float diffuse=.32+.68*max(0.,dot(n,light));
+ if(unlit)diffuse=1.;
  float shine=0.;
  vec3 rgb=vColor.rgb*diffuse+vec3(shine)*min(1.,length(vColor.rgb)*2.);
  if(grid>0.){vec2 g=fract(vUV*vec2(grid,grid*.56));float dotMask=1.-smoothstep(.32,.48,length(g-.5));rgb*=.25+.75*dotMask;}
@@ -34,8 +36,8 @@ void main(){
 }`;
 
 export class Renderer{
- constructor(canvas,side){
-  this.canvas=canvas;this.side=side;this.options={mask:true,grid:0,yaw:0,zoom:1,offset:[0,0]};
+ constructor(canvas,side,character=null){
+  this.canvas=canvas;this.side=side;this.character=character;this.options={mask:true,grid:0,yaw:0,zoom:1,offset:[0,0]};
   const gl=canvas.getContext('webgl',{antialias:true,alpha:false,preserveDrawingBuffer:true});
   if(!gl)throw Error('WebGL is required for the dimensional mouth preview');this.gl=gl;
   const shader=(type,source)=>{const s=gl.createShader(type);gl.shaderSource(s,source);gl.compileShader(s);
@@ -44,7 +46,7 @@ export class Renderer{
   gl.attachShader(this.program,shader(gl.FRAGMENT_SHADER,FS));gl.linkProgram(this.program);
   if(!gl.getProgramParameter(this.program,gl.LINK_STATUS))throw Error(gl.getProgramInfoLog(this.program));
   this.buffers=['position','normal','color'].map(name=>({name,buffer:gl.createBuffer(),loc:gl.getAttribLocation(this.program,name)}));
-  this.uniforms=Object.fromEntries(['mirror','yaw','zoom','offset','maskEnabled','polygon[0]','grid'].map(k=>[k,gl.getUniformLocation(this.program,k)]));
+  this.uniforms=Object.fromEntries(['mirror','yaw','zoom','offset','maskEnabled','unlit','polygon[0]','grid'].map(k=>[k,gl.getUniformLocation(this.program,k)]));
   gl.enable(gl.DEPTH_TEST);gl.enable(gl.BLEND);gl.blendFunc(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA);
  }
  draw(pose,style){
@@ -56,8 +58,9 @@ export class Renderer{
   gl.uniform1f(u.mirror,this.side==='left'?-1:1);gl.uniform1f(u.yaw,o.yaw);gl.uniform1f(u.zoom,o.zoom);
   gl.uniform2fv(u.offset,o.offset);gl.uniform1i(u.maskEnabled,o.mask);gl.uniform1f(u.grid,o.grid);
   gl.uniform2fv(u['polygon[0]'],WS_STUDY_MASK.flat());
-  const mesh=buildMouth(pose,style,this.side);this.lastMesh=mesh;
+  const mesh=this.character?buildCharacter(this.character,pose,style,this.side):buildMouth(pose,style,this.side);this.lastMesh=mesh;
   for(const part of mesh.parts){
+   gl.uniform1i(u.unlit,Boolean(part.unlit));
    for(const [i,key] of ['positions','normals','colors'].entries()){
     const b=this.buffers[i];gl.bindBuffer(gl.ARRAY_BUFFER,b.buffer);gl.bufferData(gl.ARRAY_BUFFER,part[key],gl.DYNAMIC_DRAW);
     gl.enableVertexAttribArray(b.loc);gl.vertexAttribPointer(b.loc,i===2?4:3,gl.FLOAT,false,0,0);

@@ -159,7 +159,10 @@ def serve(args):
 
         def do_GET(self):
             path = urlsplit(self.path).path
-            if path == "/api/state":
+            if path == "/api/character":
+                character = Path(getattr(args, 'character', 'local/character.json'))
+                self.respond(200, character.read_bytes() if character.is_file() else b'null')
+            elif path == "/api/state":
                 with app.lock:
                     self.respond(200, json.dumps(app.snapshot))
             elif path == "/api/events":

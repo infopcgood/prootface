@@ -1,101 +1,73 @@
 # Status — 2026-11-25
 
-## Current direction and user feedback
+## Latest direction
 
-Build the character model downstream of OpenSeeFace. Target: CM4 + Hailo-8,
-Sigma WS35 head with denser LEDs, one flat display per muzzle side. Prioritize
-natural animation; defer hardware and ROS plumbing. No tongue or tooth rows.
-One V-shaped point must join the posterior/eye-side lip contour of each side.
+Triwave is the static shape reference. Preserve the chosen rest identity and
+improve natural articulation independently. The user explicitly instructed us
+to IGNORE avatar phoneme animation keys and requested an audible animated
+sentence preview after the motion work. A temporary pause to locate a reference
+was superseded by that instruction.
 
-The user rejected the first sample as terrifying. Its thick metallic/ribbed
-lip strips are not accepted. The current revision removes that appearance,
-uses thin clean contours, and rounds the opening instead of a rigid wedge.
-**This replacement has not been approved and naturalness is not established.**
+Target: CM4 + Hailo-8, denser Sigma WS35 side displays, OpenSeeFace measurement.
+Prioritize motion; defer hardware/transport integration. No tongue or tooth rows.
 
-Triwave's protogen is now the mouth-SHAPE reference. The user explicitly
-clarified that its limited animation for light VRChat use is not the desired
-animation limit. Preserve natural contact, restrained corners, overlapping
-articulation and backward jaw recession from the film-animation research.
+## Privacy boundary
+
+Reference source files, identifiers, structural details, inspection observations,
+private settings, masks, derived contours and rendered user previews are kept
+out of this public repository. Reusable tooling accepts private configuration;
+it must not embed source-specific object/material names or camera calibration.
+Keep configuration and generated character data under ignored local/.
 
 ## Implemented
 
-- Standard-library Python application and dependency-free WebGL motion study.
-  Run `python -m prootface`, open http://127.0.0.1:8080.
-- OpenSeeFace 1785-byte record decoder, multiple-face selection, validation,
-  confidence checks, anatomical features, inner-lip aperture and receive time.
-- Robust staged wearer calibration, signed normalization and local JSON save.
-- Separate wearer profile, character style, retargeting, temporal filtering and
-  geometry. Rounding is explicitly a narrowing proxy; seal is inferred.
-- Deterministic shared character pose, independent anatomical corners, bounded
-  receding opening, persistent smile, geometric contact and attached rear V.
-- Speed-adaptive smoothing, immediate measured contact, tracking-loss relaxation
-  and a synthetic phrase with overlapping controls. This is not audio lip sync.
-- Dual displays, manual controls, output-only views and schematic WS35 mask and
-  LED-density study. Density options do not specify the future physical panel.
-- Original software-render tool (`tools/render_study.py`) for actual geometry
-  review; optional NumPy/Pillow and Node are needed only for this tool.
+- Generic configured rest-shape importer, with non-rest animation disabled.
+  No avatar animation poses/deltas are exported.
+- Rest-mask compiler for one visible eye, nose and mouth per side. It derives
+  normalized front/rear and lower-ribbon coordinates for procedural deformation.
+- web/character.mjs: independently developed opening, backward recession,
+  rounding, corner lift and contact priority. Concave silhouettes triangulate
+  after deformation. Full contact restores the selected rest design.
+- WebGL unlit rendering through /api/character and --character. If no private
+  character file exists, the original contour fallback is explicitly labeled.
+- performance.py: independent overlapping semantic gestures for an offline
+  example. Speech TIMESTAMPS schedule controls; avatar phoneme SHAPES are unused.
+- Optional speech synthesis and 60 fps video-review tools. They use the actual
+  Python Animator and JS deformation, with software rasterization. A speaking
+  example was generated and saved privately for user review.
 
-## Research and provenance
+## Earlier core retained
 
-- OpenSeeFace source inspected at sender blob
-  `205b2fbc8ba2615c70a7029a9248082ca65627d9`. Features are 14 signed adaptive
-  channels, not an ARKit blendshape set. No independently measured seal/pucker.
-- Disney animation interviews, Disney facial-rig papers, JALI, visual speech
-  research and the One Euro filter informed the rules. See RESEARCH.md; do not
-  misrepresent a general Disney paper as the actual Zootopia rig.
-- Sigma creator repository `coelacant1/Protogen-3D-Prints`, commit
-  `bc19f4185c104a6d147133a1f943bb8daf7fd5e7`: WS35, HUB75 and bottom render
-  images inspected. WS35 is selected. Actual assembly angles and LED map are
-  unmeasured. Print-oriented HUB75 reference STL does not establish WS35 pose.
-- Triwave's original creator page/public preview URLs located and opened.
-  Neither its Blender/FBX mesh nor clear local mouth close-ups were obtained.
-  Current contour coordinates are original placeholders, not extracted from or
-  validated against that model. Do not claim a faithful visual match.
-- Existing `infopcgood/proto-ros2` pipeline read at tree
-  `6110aa90568b796e18188dd3104e273d1e30c9f0`; see PIPELINE.md. No changes made
-  there. Future adapter should consume existing `/osf_data` and preserve screen
-  dispatcher ownership. Existing display dimensions are not this panel's spec.
+OpenSeeFace 1785-byte decoding, face selection, robust signed calibration,
+contact-aware retargeting, adaptive temporal filtering, monotonic staleness and
+tracking-loss relaxation. Both displays share one timed semantic pose and retain
+independent anatomical corner expression.
+
+Existing infopcgood/proto-ros2 was inspected without modifications. See
+PIPELINE.md for its existing topics/messages and intended insertion point.
 
 ## Verification
 
-- `python -m unittest discover -s tests -q`: **15 passed**.
-- `node --test tests/test_geometry.mjs`: **6 passed**.
-- CLI/HTTP smoke passed: startup, static assets, both output routes, manual
-  control and current model defaults. JavaScript syntax checks passed.
-- Checks cover packet layout/rejection, calibration, contact priority,
-  persistent expression, time behavior, shared-side consistency, finite mixed
-  poses, front/rear contact, V attachment and LED-map orientation.
-- Software renders inspected. A working browser executable is unavailable in
-  the current environment; browser execution and physical display appearance
-  are **unverified**. No CM4 latency or frame-rate measurements yet.
+- Python unittest: 19 passed.
+- Node geometry/character tests: 10 passed.
+- Syntax/compile checks and CLI/HTTP smoke passed.
+- The review output contains H.264 video and AAC audio and was visually inspected.
+- Browser execution and physical-panel appearance remain unverified. A working
+  browser executable is unavailable here. CM4 performance is unmeasured.
+- These checks do not establish perceptual naturalness; user review is required.
 
-## Repository and continuity
+## Repository
 
-Public repository: https://github.com/infopcgood/prootface, branch `master`.
-The user updated GitHub permissions; connector writes now work. The first
-implementation was published at
-`50950781bcd3070bf7f70e23107343d3fbf20b67`. The following revision replaces the
-rejected appearance and records the Triwave clarification. GitHub connector
-Git Data APIs are the working publication route; direct Git HTTPS failed in
-this environment. Do not force-push over concurrent changes.
+https://github.com/infopcgood/prootface, branch master. Previous checkpoint:
+e405a6d5bd3273153f4877f0499ccf407db04fb3. This revision publishes reusable tools,
+animation code, tests and generic documentation only. Reference-derived data
+and private inspection notes must not be copied into a public update.
 
-Read AGENTS.md and this file before continuing. Original research, design and
-pipeline notes are committed; wearer calibration and review renders under
-`local/` are ignored. Third-party art, CAD and avatar assets are not bundled.
+## Next
 
-## Next steps, in order
-
-1. Obtain a clear profile close-up or inspect an authorized Triwave model asset.
-   Establish the rest contour, corner return and attached V proportions with
-   visual feedback. Do not assume this provisional contour is accepted.
-2. Preserve that approved rest identity through closed smile, slight opening,
-   conversational opening, rounding, broad opening and one-sided expression.
-   Art-direct corrective curves; do not imitate the reference's limited motion.
-3. Review a short motion sequence against real wearer speech. Tune opening
-   gain, closure timing, rounding shape and corner response separately. Current
-   width-only rounding and simple eye markers are incomplete appearance work.
-4. Run the WebGL UI in a real browser; check both mirrored sides, shading,
-   temporal smoothness and controls. Then review on the actual visor.
-5. Only after shape/motion agreement, add the proto-ros2 adapter, measured WS35
-   panel mapping and real hardware performance work. Keep tracker, calibration,
-   animation and pixel-output boundaries separate.
+1. Review the actual speaking animation while preserving the chosen rest shape.
+2. Refine continuous opening/rounding/contact and corner timing from feedback.
+   Never reintroduce avatar phoneme keys as a shortcut.
+3. Capture real wearer speech through OpenSeeFace and tune calibration separately.
+4. Exercise both sides in a real browser, then on the visor.
+5. Only then add proto-ros2 adaptation, measured LED mapping and CM4 profiling.

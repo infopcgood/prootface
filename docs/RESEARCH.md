@@ -14,17 +14,21 @@ that the mouth shape is useful but the light VRChat use/limited animation must
 NOT constrain this project's animation quality. Treat it as a static design
 reference; retain natural speech, closure and expression work from film research.
 
-Opened creator page, banner and public gallery preview through web retrieval.
-Direct image download and inspection of the actual Blender/FBX mouth mesh were
-not available in this environment. Do not invent extracted control points,
-mesh topology or measured blendshape trajectories from those previews. Current
-contours remain original/provisional and need comparison against a usable
-close-up reference or the actual model in the next visual-design pass.
+A user-provided reference has now been processed locally. Its source files,
+identity, structural details, projected masks, derived contours and inspection
+notes remain private. The public implementation contains generic rest-silhouette
+processing and independent deformation, not a copy of a reference asset.
+
+The user explicitly instructed us to ignore the avatar's crudely animated
+phoneme keys. Import tools disable non-rest animation, and no avatar animation
+delta is exported. The selected rest identity takes precedence over earlier
+placeholder contours.
 
 The first implementation's thick, metallic/ribbed lip strips were explicitly
 rejected by the user as terrifying. They are not an acceptable direction. The
-new study removes those strips and emphasizes contour, restrained aperture and
-the small integrated rear V. Do not describe this revision as user-approved.
+subsequent original contour study was also provisional. The generic importer
+preserves a selected rest shape; independently developed motion still
+needs the user's perceptual review. Do not infer acceptance from code tests.
 
 | Reference | Observation / implication |
 | --- | --- |
@@ -93,4 +97,16 @@ Use real lip contact as a constraint. A higher LED count improves sampling,
 not motion semantics or observer-dependent parallax. Initial procedural
 surfaces are a replaceable art-direction tool; convincing final naturalness
 requires actual captured performances and human review.
+
+## Speaking-review clip
+
+The example sentence is “Maybe we should move a little closer.” CMU Flite's
+SLT voice produces audio and timestamped segments through its public C API
+([official headers](https://github.com/festvox/flite/blob/master/include/flite.h)).
+Timestamps schedule independently overlapped opening, width and contact
+gestures. They never select the avatar's phoneme keys. Rounding prepares before
+its sound, contact overrides vowel blending, and expression holds through
+the phrase. The actual Python Animator and JS character deformation generate
+the 60 fps clip. Pillow rasterization is used for reproducible review, not a
+claim of tested browser or CM4 rendering.
 

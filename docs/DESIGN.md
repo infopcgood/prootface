@@ -1,106 +1,116 @@
 # Character model and animation rules
 
-## Accepted direction
+## Current target
 
-The user's priority is natural animation. Hardware output and transport
-integration come later. A CM4 + Hailo-8 is the target host, but OpenSeeFace owns
-measurement and this project does not change or compile its neural models.
-Use Triwave's protogen as the static mouth-shape reference. The user clarified
-that the reference has limited animation for light VRChat use; that limited
-motion is not the goal here. Natural articulation remains the goal, informed
-by the Zootopia research. No tongue, gums or tooth rows. Exactly one V point
-per side, continuous with the posterior lip. Its attachment is geometric.
+The user selected Triwave as the static visual reference and explicitly asked
+us to ignore avatar phoneme animation keys. Develop natural Nick/Zootopia-informed
+articulation independently, preserving the selected rest identity. No tongue,
+tooth rows, detached fangs or metallic lip tubes. Private reference details and
+inspection notes are excluded from this public document.
 
-The first metallic, ribbed lip-strip render was explicitly rejected. The
-current revision uses a thin clean contour and subdued cavity. It remains an
-original provisional study: Triwave's mesh has not been inspected, and its
-precise contour has not been reproduced. Get visual agreement before investing
-in more surface shading or treating these proportions as the final character.
+## Boundaries
 
-## Layer boundaries
+1. OpenSeeFace measures features and landmarks.
+2. Wearer calibration learns signed usable movement and contact aperture.
+3. Retargeting estimates opening, narrowing, spread, corners and seal.
+4. Time filtering stabilizes rest, follows deliberate motion and honors contact.
+5. A shared semantic pose drives both anatomical sides.
+6. Character-specific deformation expands the imported rest silhouette.
+7. Display projection handles mirroring, mask and eventual LED sampling.
 
-1. Measurement: OpenSeeFace features and optional inner-lip landmarks.
-2. Wearer calibration: neutral offsets and usable positive/negative movement.
-3. Retargeting: opening, narrowing proxy, spreading, corners and contact.
-4. Time: motion-dependent response, contact priority, tracking-loss recovery.
-5. Character pose: bounded opening curve, jaw angle, recession, width and
-   independent anatomical corners.
-6. Appearance: continuous upper/lower profile contours, recessed cavity,
-   posterior V and a restrained eye marker for orientation.
-7. Display: side projection, mirroring, panel mask and eventual pixel sampling.
+Style changes do not require repeating wearer calibration. Physical panel
+placement is distinct from the camera used to project the character.
 
-Wearer calibration must not store display dimensions or decide the character's
-appearance. A style change must not require repeating wearer calibration.
+## Rest-shape import
 
-## Transfer of film-animation findings
+The generic Blender adapter reads private import settings from an ignored file.
+It opens a user-provided asset with scripts disabled and zeros every non-rest
+animation key. The configured emission source and opaque occlusion produce two
+orthographic rest masks. No reference animation delta is exported. Source
+identity, internal object/material names and projection calibration are never
+embedded in reusable code.
 
-- Nick's animators described a receding jaw opening to avoid a crocodile-like
-  hinge. Here a curved opening envelope and a bounded rotational/recession
-  term pull the lower contour down and back. This is our adaptation, not
-  Disney's undisclosed rig implementation.
-- Judy's narrowed mouth corners preserved appeal and tooth visibility. Here
-  the width envelope and corner motion are bounded separately from opening.
-- Speech continues inside a persistent expression. Rounding modifies central
-  articulation while corner lift remains independent.
-- Real speech coarticulates. Live camera measurements already contain much of
-  that preparation and overlap. Avoid snapping between phoneme labels.
-- A real closure is more important than a noisy opening estimate. Visible
-  contact is enforced, including around the attached V, after smoothing.
+The compiler identifies visible eye, nose and mouth components and simplifies
+their boundaries. The private compiled file contains rest polygons, not a
+viseme library. It also stores normalized front-to-rear position `t` and a
+lower-ribbon weight `v`, determined from the rest mask's vertical envelope.
+The selected concave silhouette is retained without copying its data into code.
+Both side projections are canonicalized to front-left; each display mirrors
+only once. Source asset and derived outlines are not committed.
 
-## Current geometry
+## Independent deformation
 
-This model is 2.5D: original thin deformable profile contours with a shallow
-shaded cavity, not an anatomically complete shared 3D skull. Both sides share
-articulation and time; each has its own anatomical corner.
+The Python model filters semantic controls and computes visible aperture:
 
-The upper contour remains comparatively stable. The lower contour follows a
-rounded opening envelope and moves back; front and rear return to contact
-instead of making a rigid wedge. The rear expression persists during speech.
-A corrective lower contour maintains contact around the V when closing. At
-complete closure both contours coincide. The cavity recedes behind both
-contours. No text or third-party art is baked into the face mesh.
+`a = opening^gamma * (1 - seal)^2`
 
-Static shape, expression and articulation are distinct: the baseline and rear
-V define the provisional rest identity; slower corner lift carries expression;
-opening, recession and width changes carry articulation. A future authored
-Triwave-informed contour must replace the rest shape without replacing those
-motion rules or forcing the wearer to recalibrate. Current rounding changes
-width only; a full pucker/protrusion corrective is not yet implemented.
+A measured closure has priority over jaw drift. In the filled-ribbon design,
+contact means returning to the supplied closed ribbon, not extinguishing the
+entire luminous mouth. The original contour study remains an explicitly labeled
+fallback when the private character file is absent.
 
-The V is evaluated directly within the upper contour using a compact triangular
-basis. Samples include its exact two roots and tip, so it cannot detach when
-the mouth changes shape. Its position and depth are editable character rules.
+For a mouth span `L`, normalized position `t`, lower weight `v`, corner `c` and
+rounding `r`, the imported-character path uses:
 
-## Physical limits and WS35 layout
+- Smooth opening envelope `e = sin(pi*t)^0.72`, retaining both returns.
+- Lower expansion `dy = -.32*L*a*e*v*(jaw_gain/.36)*(1+.18*r)`.
+- Backward recession `dx = .09*L*a*e*v*(recession/.12)`.
+- Persistent corner lift `.16*L*c*smoothstep((t-.30)/.70)` with style gain.
+- Bounded narrowing/spreading about the posterior anchor, plus a small central
+  upper-contour rounding correction. These changes do not replace the rest
+  shape or switch between discrete drawings.
 
-Sigma's WS35 photograph/CAD render shows paired shaped planar boards around a
-central nose gap, behind a curved outer visor. The reference is NOT two frontal
-LCDs and NOT the rectangular HUB75 variant. Higher density improves shading
-and curve sampling; it does not create additional emitting area, change panel
-normals, remove the nose gap or move the physical visor's silhouette.
+Upper contour vertices remain comparatively stable; the lower band expands
+and recedes. At contact, opening displacement is exactly zero. Expression and
+width remain independent, so a closed smile or rounded closure retains character.
+The concave outline is triangulated after deformation, avoiding a convex fan
+that would incorrectly fill the hooked corner. The display uses unlit emission;
+it does not invent sculpted human lips to suggest natural motion.
 
-The preview's polygon and optional panel tilt are clearly marked schematics.
-They are not measured fits to Sigma. Physical panel pose and virtual rendering
-camera are different calibrations. No exact mounting angle has been extracted.
+The eye keeps the supplied rest outline; blink compresses it vertically and a
+small cheek lift follows positive corner expression. Eye animation is secondary
+to the mouth in this study. The source's eye/viseme animation keys are not used.
 
-## Honest input capabilities
+## Temporal and speech rules
 
-OpenSeeFace's 14 features are signed adaptive measurements. They are not
-ARKit/Babble blendshapes. Current rounding is derived from negative mouth width;
-it is not a dedicated pucker measurement, a phoneme identity, or an emotion.
-Contact uses the ratio between three inner-lip pairs and mouth width when those
-landmarks are usable. That infers contact, not pressure or true independent
-jaw-plus-lip muscle activation. Do not claim otherwise in the UI or docs.
+Live OpenSeeFace controls already contain much of real coarticulation. Do not
+classify phonemes or gate silent expressions with microphone activity. The
+speed-adaptive low-pass follows deliberate mouth movement quickly and suppresses
+rest noise; contact can close immediately. Tracking loss eases toward rest.
+Use monotonic receive time, never sender wall time, for freshness.
 
-## Naturalness acceptance criteria
+For the audible offline example only, CMU Flite segment times schedule our own
+semantic gestures. Opening/spreading overlap across roughly 45 ms windows;
+rounding prepares about 75 ms early, while contact has a shorter response.
+Closure is a dominating constraint, so averaging adjacent vowels cannot erase
+an M/B/P closure. A slower corner expression persists through the whole phrase.
+The same Python Animator and JS deformation render the review clip. This is
+not a live tracker recording or an evaluation of the avatar's phoneme keys.
 
-- Rest is stable; closing returns to the same character-specific contour.
-- Contact remains closed during a smile or a deliberately conflicting jaw input.
-- The lower contour recedes smoothly rather than dropping like a sliding flap.
-- The V remains part of the rear contour; one per side and no tooth duplication.
-- Spreading, rounding and speech preserve identifiable expression.
-- No frame-rate-dependent overshoot or random idle mouth motion.
-- Lost input eases to rest; stale sender wall clocks cannot drive time.
-- Final acceptance needs real wearer recordings and visual review on the actual
-  visor. Synthetic performance tests cannot establish perceptual naturalness.
+## Film-animation transfer
 
+Nick's animators discussed a receding opening to avoid a crocodile-like jaw;
+this design adapts that principle as bounded lower-ribbon recession. Controlled
+corners retain appeal and expression during articulation. Actual closures and
+relaxed returns to rest are more useful here than a one-picture-per-phoneme
+mouth chart. These are our adaptations, not a disclosure of Disney's rig.
+
+## Physical and measurement limits
+
+The selected Sigma WS35 layout has two shaped flat side boards and a nose gap
+behind a curved visor. Higher LED density improves sampling, not emitting area,
+physical silhouette or observer-dependent parallax. Current panel mask/tilt are
+schematics; no assembly angle or custom LED map has been measured. The video
+shows the two flat projected face views, not a verified fit to physical panels.
+
+OpenSeeFace exports signed adaptive features, not a full ARKit/Babble set.
+Rounding is a narrowing proxy and contact is inferred from inner-lip aperture.
+Do not claim direct pucker, pressure or independent jaw-muscle measurement.
+
+## Acceptance
+
+Require stable rest identity, full closures, restrained corners, no detached
+points, persistent expression, smooth receding opening and safe loss recovery.
+Tests and software frames verify geometry and timing invariants. Perceptual
+naturalness needs user review of the speaking clip and real captured wearer
+speech, followed by browser and actual-visor review.
