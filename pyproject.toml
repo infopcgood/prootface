@@ -9,9 +9,15 @@ description = "Character-specific mouth retargeting for two flat protogen visor 
 requires-python = ">=3.10"
 dependencies = []
 
+[project.optional-dependencies]
+render = ["numpy>=1.24", "Pillow>=9"]
+
 [project.scripts]
 prootface = "prootface.__main__:main"
 
 [tool.setuptools.package-data]
 prootface = ["web/*"]
+
+[tool.setuptools.packages.find]
+include = ["prootface*"]
 

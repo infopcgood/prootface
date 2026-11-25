@@ -47,18 +47,21 @@ class Application:
             with self.lock:
                 self.rejected += 1
             return
+        for measurement in records:
+            self.ingest(measurement)
+
+    def ingest(self, m):
+        """Accept decoded input from either UDP or ROS, with identical rules."""
         with self.lock:
-            for m in records:
-                if m.face_id == self.face_id:
-                    # Only valid fresh records replace the last usable sample.
-                    self.received += 1
-                    if m.valid:
-                        self.latest = m
-                        if self.mode == "live":
-                            contact=retarget(m,self.profile)['seal']>=.98
-                            if contact and not self.measurement_contact:self.contact_pending=True
-                            self.measurement_contact=contact
-                            self.session.add(m.signals(), m.aperture_ratio)
+            if m.face_id == self.face_id:
+                self.received += 1
+                if m.valid:
+                    self.latest = m
+                    if self.mode == 'live':
+                        contact=retarget(m,self.profile)['seal']>=.98
+                        if contact and not self.measurement_contact:self.contact_pending=True
+                        self.measurement_contact=contact
+                        self.session.add(m.signals(),m.aperture_ratio)
 
     def tick(self, now: float):
         with self.lock:
@@ -135,28 +138,8 @@ class Application:
                 raise ValueError("Unknown command")
 
 
-def serve(args):
-    app = Application(Path(args.profile), args.face_id)
-    udp = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    udp.bind((args.udp_host, args.udp_port))
-    udp.settimeout(0.2)
-
-    def receive_loop():
-        while not app.stop.is_set():
-            try:
-                packet, _ = udp.recvfrom(65535)
-                app.receive(packet, time.monotonic())
-            except socket.timeout:
-                continue
-            except OSError:
-                break
-
-    def animate_loop():
-        while not app.stop.is_set():
-            start = time.monotonic()
-            app.tick(start)
-            app.stop.wait(max(0.001, FRAME_SECONDS - (time.monotonic() - start)))
-
+def make_http_server(app, host, port, character_path):
+    """Host the same UI/calibration state without creating input sockets or clocks."""
     class Handler(BaseHTTPRequestHandler):
         protocol_version = "HTTP/1.1"
 
@@ -175,10 +158,10 @@ def serve(args):
         def do_GET(self):
             path = urlsplit(self.path).path
             if path == "/api/character-texture":
-                texture = Path(getattr(args, 'character', 'local/character.json')).with_suffix('.png')
+                texture = Path(character_path).with_suffix('.png')
                 self.respond(200, texture.read_bytes(), 'image/png') if texture.is_file() else self.respond(404, '{"error":"No character texture"}')
             elif path == "/api/character":
-                character = Path(getattr(args, 'character', 'local/character.json'))
+                character = Path(character_path)
                 self.respond(200, character.read_bytes() if character.is_file() else b'null')
             elif path == "/api/state":
                 with app.lock:
@@ -226,8 +209,41 @@ def serve(args):
             except (ValueError, KeyError, TypeError) as exc:
                 self.respond(400, json.dumps({"error": str(exc)}))
 
-    server = ThreadingHTTPServer((args.host, args.port), Handler)
+    server = ThreadingHTTPServer((host, port), Handler)
     server.daemon_threads = True
+    return server
+
+
+def start_http(app, host, port, character_path):
+    server = make_http_server(app, host, port, character_path)
+    thread = threading.Thread(target=server.serve_forever, kwargs={'poll_interval': .1}, daemon=True)
+    thread.start()
+    return server, thread
+
+
+def serve(args):
+    app = Application(Path(args.profile), args.face_id)
+    udp = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    udp.bind((args.udp_host, args.udp_port))
+    udp.settimeout(0.2)
+
+    def receive_loop():
+        while not app.stop.is_set():
+            try:
+                packet, _ = udp.recvfrom(65535)
+                app.receive(packet, time.monotonic())
+            except socket.timeout:
+                continue
+            except OSError:
+                break
+
+    def animate_loop():
+        while not app.stop.is_set():
+            start = time.monotonic()
+            app.tick(start)
+            app.stop.wait(max(0.001, FRAME_SECONDS - (time.monotonic() - start)))
+
+    server = make_http_server(app, args.host, args.port, getattr(args, 'character', 'local/character.json'))
     app.tick(time.monotonic())
     threading.Thread(target=receive_loop, daemon=True).start()
     threading.Thread(target=animate_loop, daemon=True).start()

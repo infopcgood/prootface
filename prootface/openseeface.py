@@ -43,6 +43,28 @@ class Measurement:
         }
 
 
+def observation(*, received_at, sender_time, face_id, resolution, right_eye,
+                left_eye, success, confidence, xy, features) -> Measurement:
+    """Common validation/aperture rules for wire input and decoded ROS data."""
+    numbers = [received_at, sender_time, face_id, *resolution, right_eye, left_eye,
+               *confidence, *(v for point in xy for v in point),
+               *(features[k] for k in FEATURES)]
+    if not all(math.isfinite(v) for v in numbers):
+        raise ValueError('Non-finite OpenSeeFace observation')
+    if (len(resolution)!=2 or min(resolution)<=0 or face_id<0 or int(face_id)!=face_id
+            or len(confidence)!=68 or len(xy)!=68 or any(len(p)!=2 for p in xy)):
+        raise ValueError('Invalid OpenSeeFace observation shape')
+    mouth_conf = min(confidence[i] for i in range(58,66))
+    span = math.dist(xy[58],xy[62])
+    aperture = None
+    if span>1.0 and mouth_conf>=.5:
+        aperture = sum(math.dist(xy[a],xy[b]) for a,b in
+                       ((59,65),(60,64),(61,63)))/(3*span)
+    return Measurement(received_at,sender_time,int(face_id),dict(features),aperture,
+                       mouth_conf,bool(success) and mouth_conf>=.5,
+                       min(1.0,max(0.0,left_eye)),min(1.0,max(0.0,right_eye)))
+
+
 def decode_packet(packet: bytes, received_at: float) -> list[Measurement]:
     if not packet or len(packet) % RECORD_SIZE or len(packet) // RECORD_SIZE >= 40:
         raise ValueError(f"Expected 1–39 OpenSeeFace records of {RECORD_SIZE} bytes")
@@ -63,17 +85,9 @@ def decode_packet(packet: bytes, received_at: float) -> list[Measurement]:
         if not all(math.isfinite(v) for v in (*confidence, *points, *values)):
             raise ValueError("Non-finite OpenSeeFace measurement")
         xy = list(zip(points[0::2], points[1::2]))  # sender writes image x then y
-        mouth_conf = min(confidence[i] for i in range(58, 66))
-        span = math.dist(xy[58], xy[62])
-        aperture = None
-        if span > 1.0 and mouth_conf >= 0.5:
-            # Same three opposing inner-lip pairs used in upstream FeatureExtractor.
-            aperture = sum(math.dist(xy[a], xy[b]) for a, b in
-                           ((59, 65), (60, 64), (61, 63))) / (3 * span)
-        result.append(Measurement(
-            received_at, sender_time, face_id, dict(zip(FEATURES, values)),
-            aperture, mouth_conf, bool(success) and mouth_conf >= 0.5,
-            min(1.0, max(0.0, left)), min(1.0, max(0.0, right)),
-        ))
+        result.append(observation(received_at=received_at,sender_time=sender_time,
+                    face_id=face_id,resolution=(width,height),right_eye=right,
+                    left_eye=left,success=success,confidence=confidence,xy=xy,
+                    features=dict(zip(FEATURES,values))))
     return result
 
