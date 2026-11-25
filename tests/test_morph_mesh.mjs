@@ -26,3 +26,16 @@ test('opposite side projection changes depth sign and retains texture coordinate
  assert.equal(a.positions[2],-b.positions[2]);
  assert.equal(a.positions[0],b.positions[0]);assert(a.textured&&b.textured);
 });
+
+test('front restraint follows authored motion locally and preserves rear and expressions',()=>{
+ const shape={positions:[0,0,0,.2,0,0,1,0,0],uvs:[0,0,0,0,0,0],parts:[],targets:{
+  open:{indices:[0,1,2],deltas:[1,-2,3,1,-2,3,1,-2,3]},
+  smile_left:{indices:[0],deltas:[.2,.3,0]}}};
+ const full=blendVertices(shape,{blend_open:1,front_motion_scale:1});
+ const limited=blendVertices(shape,{blend_open:1,front_motion_scale:.8});
+ for(let axis=0;axis<3;axis++)assert(Math.abs(limited[axis]-full[axis]*.8)<1e-6);
+ assert.deepEqual(limited.slice(6),full.slice(6));
+ assert.deepEqual(blendVertices(shape,{front_motion_scale:0}),new Float32Array(shape.positions));
+ assert.deepEqual(blendVertices(shape,{blend_smile_left:1,front_motion_scale:0}),
+                  blendVertices(shape,{blend_smile_left:1,front_motion_scale:1}));
+});

@@ -22,6 +22,7 @@ class Style:
     opening_contrast: float = 2.4
     key_pose_strength: float = 0.95
     accent_gain: float = 0.45
+    front_motion_scale: float = 0.8
 
 
 NEUTRAL = dict(opening=0.0, rounding=0.0, spread=0.0, seal=1.0,
@@ -101,7 +102,8 @@ def pose_from_controls(controls: dict[str, float], style: Style, family_index: i
         blends[f'blend_frown_{side}']=max(0,-corner)*.45
         blends[f'blend_pucker_{side}']=rounding*(1-visible)*.12
         blends[f'blend_blink_{side}']=1-c[f'eye_{side}']
-    return {**c, **rendered_corners, **blends, "accent":accent,"aperture": visible, "jaw_angle": style.max_jaw_angle * visible,
+    return {**c, **rendered_corners, **blends, "front_motion_scale":style.front_motion_scale,
+            "accent":accent,"aperture": visible, "jaw_angle": style.max_jaw_angle * visible,
             "jaw_recession": style.recession * visible,
             "width_scale": clamp(1 + 0.10 * c["spread"] - 0.28 * c["rounding"], 0.65, 1.10)}
 

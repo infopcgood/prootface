@@ -111,6 +111,7 @@ class Application:
                     "lip_thickness": (.005, .04),
                     "pose_contrast": (1,4),
                     "opening_contrast": (1,4),"key_pose_strength": (0,1),"accent_gain": (0,.5),
+                    "front_motion_scale": (0,1),
                 }
                 proposed = asdict(self.animator.style)
                 for k, v in data.items():

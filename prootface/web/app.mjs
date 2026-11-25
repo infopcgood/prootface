@@ -28,7 +28,8 @@ for(const [key,label,min,max,value] of controls)slider($('#controls'),key,label,
 for(const [key,label,min,max,value] of [['max_jaw_angle','Opening arc',.1,.65,.36],['recession','Backward recession',0,.35,.12],
  ['opening_gamma','Conversational restraint',.6,2,.85],['pose_contrast','Shape contrast',1,4,2.5],
  ['opening_contrast','Small / large contrast',1,4,2.4],['key_pose_strength','Key pose strength',0,1,.95],
- ['accent_gain','Opening accents',0,.5,.45],['v_depth','Rear V point',.02,.30,.11]])
+ ['accent_gain','Opening accents',0,.5,.45],['front_motion_scale','Front lip motion',0,1,.8],
+ ['v_depth','Rear V point',.02,.30,.11]])
  if((!character||key!=='v_depth')&&!(character?.schema===2&&key==='recession'))slider($('#styles'),key,character?.schema===2&&key==='max_jaw_angle'?'Opening strength':label,min,max,value,(k,v)=>post('/api/style',{[k]:v}));
 document.querySelectorAll('[data-mode]').forEach(b=>b.onclick=()=>post('/api/control',{mode:b.dataset.mode}));
 const presets={rest:{...REST},open:{...REST,opening:.65,seal:0},round:{...REST,opening:.5,rounding:.9,seal:0},

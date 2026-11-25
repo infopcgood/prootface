@@ -8,6 +8,35 @@ rate is **24 fps**. The user explicitly reiterated: this must work in REAL TIME.
 No tongue or tooth rows. Preserve the selected visual identity and keep source
 assets and inspection details private. Hardware/ROS work remains secondary.
 
+## Real-video milestone and anterior refinement
+
+The user requested internet footage through actual OpenSeeFace. A reproducible
+GitHub workflow now uses upstream revision
+`50c09741897010faad721a218b2bbe14ecad6251`, model 3, chronological 24 fps input,
+and retains wire-format measurements. No audio or phoneme schedule drives it.
+The first public-domain sample was severely backlit and yielded zero faces; it
+was rejected. The replacement is a public-domain White House weekly address
+dated 2016-01-23. The 28-second input has 429 valid frames out of 672, including
+title/initial material. The evaluated 16–22 second section has **144/144 valid
+measurements**. Earlier 4–14 second footage supplies 93 valid normalization
+samples; this estimate is marked uncalibrated and frozen before evaluation.
+It is not guided wearer calibration.
+
+`tools/replay_video.py` sends later real packets through the existing live
+Application, including packet validity, contact, staleness and causal Animator.
+Both large and tight shapes and all three mouth families occur. The private
+comparison has source footage, character and enlarged mouths, with original
+audio and timing. Native offline rendering reviews the same geometry/weights;
+it is not evidence of browser, CM4 or physical-display latency.
+
+The user preferred less spread at image-left/anterior lip edge. A local guide
+now scales primary articulation displacement to .8 at the front, smoothly
+returning to full motion farther back. Rest, expression and timing are intact.
+Native/JavaScript vertex parity on review poses is within 1.8e-7 character units.
+New verification totals: 37 Python tests and 14 Node tests passed. Added checks
+cover tracker packet serialization, future-independent replay, stale tracking,
+approximate calibration labeling and local geometry restraint.
+
 ## Latest performance revision
 
 The user found the prior 24 fps pass still insufficiently dramatic. The old
@@ -37,7 +66,8 @@ review outputs. They are not live camera recordings or CM4 benchmarks.
 - The native review helper uses 24 fps frame-authored synthetic control goals,
   then sends only supported channels through the same causal Animator used live.
   A separate authored reference mode can use full consonant hints and is labeled.
-- Rendered MP4/GIF previews are synthetic replay, not real camera recordings.
+- Initial sentence previews use synthetic replay. The latest video comparison
+  instead uses actual OpenSeeFace measurements from public footage.
   Offline Blender is only a review renderer and never runs in the live path.
 
 ## Architecture retained
@@ -56,8 +86,8 @@ Specialized consonant inference and actual-device evaluation remain future work.
 
 ## Verification
 
-- Python unittest: 33 passed.
-- Node geometry/character/morph tests: 13 passed.
+- Python unittest: 37 passed.
+- Node geometry/character/morph tests: 14 passed.
 - New regressions cover tight-to-hit contrast, causal onset accents, prompt
   cancellation, 24 fps key exposures, short closures, dominant-shape
   contrast, bounded primary weights, no dependence on future inputs, continued

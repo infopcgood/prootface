@@ -81,3 +81,17 @@
   signed calibration, contact, corner persistence, concave geometry and time.
 - Publish only reusable code and generic documentation. Use an expected branch
   SHA, preserve concurrent work and never force-push over another change.
+
+## Latest review and real-video testing
+
+- User prefers the stronger performance but wants less spreading at image-left
+  (the anterior lip edge). Default front motion is now .8, fading smoothly to
+  full authored motion over the anterior third. Preserve rest and expression.
+- Use real OpenSeeFace video measurements for the next evaluation. The public
+  video workflow measures chronological 24 fps frames; audio is comparison only.
+  Replay packets through Application so validity, contact, staleness and Animator
+  behavior match live use. Never substitute a phoneme schedule.
+- Existing footage cannot perform guided calibration. Label its earlier-section
+  estimate approximate, keep it disjoint from evaluation, freeze it before the
+  evaluated section, and report actual valid tracking. Zero valid tracking is
+  a failed sample, not a successful animation test.

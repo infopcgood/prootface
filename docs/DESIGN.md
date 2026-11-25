@@ -181,3 +181,26 @@ intervening silhouette promptly and preserves large/small rhythm. Wearer
 calibration stays separate; opening contrast, key-pose commitment and accent
 gain are character-style controls. Actual wearer capture is still needed to
 tune these choices; comparison renders are synthetic input replay.
+
+## Local anterior motion restraint
+
+The latest review accepted the stronger performance but preferred less spread
+at the anterior mouth edge. A spatial guide reduces primary articulation
+displacement there by 20%, fading smoothly to full motion farther back. The
+guide is computed from the affected mouth vertices, rather than head bounds.
+Each local authored XYZ displacement retains its direction; rest vertices,
+contact, blinks and expression targets stay intact. The same generic rule is
+used by the importer, WebGL and native review renderer. It does not change
+calibration, pose timing or the large opening response in the rest of the mouth.
+
+## Real-video evaluation
+
+`tools/track_video.py` runs an external upstream OpenSeeFace checkout on
+chronological 24 fps video frames, retaining its actual wire measurements.
+Audio is never input. `tools/replay_video.py` estimates a profile from an
+earlier section, then sends later packets through the live Application.
+Evaluation frames cannot affect that frozen profile or previous controller
+outputs. This approximate normalization is explicitly marked uncalibrated;
+it cannot replace guided wearer calibration or actual-device latency tests.
+The native comparison renderer uses original source timing and audio without
+shifting the soundtrack to conceal controller lag.

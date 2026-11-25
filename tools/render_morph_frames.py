@@ -7,6 +7,8 @@ import sys
 import bpy
 import numpy as np
 from mathutils import Vector
+sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
+from prootface.rig import FRONT_TARGETS,front_motion_weights
 
 
 def main():
@@ -21,6 +23,7 @@ def main():
     base=np.asarray(rig['positions'],dtype=float).reshape(-1,3)
     uv=np.asarray(rig['uvs']).reshape(-1,2)
     targets={name:(np.asarray(t['indices']),np.asarray(t['deltas']).reshape(-1,3)) for name,t in rig['targets'].items()}
+    front=np.asarray(rig.get('front_weights',front_motion_weights(rig)))
     zoom=rig['view']['zoom'];ox,oy=rig['view']['offset'];aspect=960/540
     sign=-rig.get('anatomical_left_sign',1)
     def project(points):
@@ -64,7 +67,9 @@ def main():
         points=base.copy()
         for semantic,(indices,deltas) in targets.items():
             weight=max(0,min(1,pose.get('blend_'+semantic,0)))
-            if weight:points[indices]+=weight*deltas
+            if weight:
+                local=(1-(1-pose.get('front_motion_scale',1))*front[indices]) if semantic in FRONT_TARGETS else np.ones(len(indices))
+                points[indices]+=weight*deltas*local[:,None]
         mesh.vertices.foreach_set('co',project(points).ravel());mesh.update()
         scene.render.filepath=str((args.output/f'{index:05}.png').resolve())
         bpy.ops.render.render(write_still=True)

@@ -92,6 +92,14 @@ No Sigma mesh or image is included in Prootface.
 
 ## Engineering deductions
 
+The first real-video evaluation uses [the White House weekly address dated
+2016-01-23](https://commons.wikimedia.org/wiki/File:2016-01-23_President_Obama%27s_Weekly_Address.webm),
+listed as U.S. government public domain. The excerpt is resampled to 24 fps;
+original audio accompanies the comparison but does not drive any motion.
+Calibration uses only an earlier, disjoint section of observed movement.
+This tests tracking-driven animation and does not reproduce an inside-visor
+camera view, guided wearer calibration or real device timing.
+
 Use one semantic state with separate anatomical corner controls and calibrated
 side compositions. Keep the physical board mask outside the character model.
 Use real lip contact as a constraint. A higher LED count improves sampling,
