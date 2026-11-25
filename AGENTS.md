@@ -84,6 +84,19 @@
 
 ## Latest review and real-video testing
 
+- Latest feedback: the nose was being covered; the rest of A is accepted.
+  Root cause was a coarse black masking triangle tilting across the stationary
+  nose when its lower vertex advanced. The importer now cuts mesh triangles at
+  the reach field's transition boundaries before compiling motion. This keeps
+  the upper surface fixed rather than painting over the nose. Across 144 native
+  frames the nose matches its unobscured reference and A's mouth pixels are
+  unchanged. Preserve this separation and test native/JS parity on future edits.
+- The user asked how to integrate into proto-ros2. Current commit was rechecked;
+  see docs/PIPELINE.md for the concrete proposal, including OSFData ingestion,
+  same calibration/controller, live renderer gap, dispatcher ownership and a
+  synchronized two-view atlas for the dense WS backend. No proto-ros2 files
+  were changed, and ROS/hardware integration is not implemented or tested.
+
 - Current comparison request: retain a pointed lower-lip spike during opening
   and exaggerate forward reach of the rounded/puckered mouth. Both A and B
   include the stronger reach; only B adds spike retention. The user selected

@@ -8,6 +8,31 @@ rate is **24 fps**. The user explicitly reiterated: this must work in REAL TIME.
 No tongue or tooth rows. Preserve the selected visual identity and keep source
 assets and inspection details private. Hardware/ROS work remains secondary.
 
+## Nose masking fix and ROS integration investigation
+
+The user observed the nose becoming covered while otherwise accepting A.
+Tracing the rendered geometry confirmed that the rounded forward motion tilted
+a coarse black occluding triangle across the stationary nose. Compiling shared
+triangle cuts at the reach transition boundaries keeps the entire upper region
+unchanged. Across all 144 frames, the nose now matches its unobscured reference
+exactly and the chosen A mouth region has zero differing pixels. The stronger
+reach, controller, timing and lower-lip choice are preserved.
+
+The corrected 24 fps render is regenerated into the same 24/12/6 presentation
+comparisons. Reimport produces identical compiled data; native/JavaScript vertex
+error is below 2.1e-7 on review poses. New geometry tests cover original landmark
+IDs, shared-edge cuts, surface area/winding, interpolation and the fixed upper
+partition. Verification: 44 Python and 14 Node tests pass.
+
+The user also asked how to integrate with proto-ros2. Master remains at
+`6110aa90568b796e18188dd3104e273d1e30c9f0`. Input/output schemas, dispatcher,
+PNG renderer, WS backend, parameter defaults and launch script were re-read.
+docs/PIPELINE.md now records the concrete insertion and atlas contract. No files
+in proto-ros2 were changed. A ROS input/node adapter, realtime offscreen frame
+renderer, atlas-aware dense WS mapping and actual-device validation remain work
+to implement. The current WebGL viewer and offline Blender review are not an
+already functioning ROS display pipeline.
+
 ## Selected A and presentation-cadence comparison
 
 The user selected A: retain the existing lower contour, spike retention off,
@@ -141,7 +166,7 @@ Specialized consonant inference and actual-device evaluation remain future work.
 
 ## Verification
 
-- Python unittest: 41 passed.
+- Python unittest: 44 passed.
 - Node geometry/character/morph tests: 14 passed.
 - New regressions cover tight-to-hit contrast, causal onset accents, prompt
   cancellation, 24 fps key exposures, short closures, dominant-shape

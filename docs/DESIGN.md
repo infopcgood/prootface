@@ -220,6 +220,15 @@ restraint still applies to the original articulation. Narrowing is still only
 a rounding proxy; no O/OO phoneme recognition or physical lip protrusion
 measurement has been added.
 
+The compiler resolves the reach field's transition boundaries in the mesh
+before applying motion. Otherwise a coarse occluding triangle with fixed upper
+vertices and a moving lower vertex changes its plane and can cover a stationary
+feature above the active region. Edge intersections are shared; positions,
+UVs, depth, source deltas and front weights interpolate onto the new vertices.
+Original landmark IDs stay valid. The upper partition remains fixed while the
+lower partition follows reach. This fixes mask interference at its source;
+no rendered nose patch or depth-disabled overlay is added.
+
 At runtime each spike correction follows its corresponding primary weight
 times the spike-style strength. Forward reach follows filtered narrowing,
 contact release and its style strength. Rest and full contact contribute zero
