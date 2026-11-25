@@ -46,3 +46,22 @@ and the causal 24 fps Animator. Its MP4 keeps original audio timing and its GIF
 keeps all 24 fps frame exposures using alternating centisecond durations.
 Outputs and all private assets belong under ignored local/. The comparison is
 offline review, not a measurement of CM4 inference, display timing or latency.
+
+## Presentation-rate comparison
+
+The user selected A and requested 12 and 6 fps reviews against the existing
+24 fps presentation. `tools/render_rate_comparison.py` takes an existing frame
+sequence and its matching movie with audio. It creates true-rate individual
+movies plus a synchronized comparison. Optional crop coordinates focus the
+review without changing the geometry or framing between cadences.
+
+```sh
+python tools/render_rate_comparison.py --frames local/video-replay/frames \
+  --movie local/video-replay/real-video-24fps.mp4 --output local/rate-comparison
+```
+
+The 12 fps review holds every second source pose; 6 fps holds every fourth.
+Neither selects future poses, interpolates drawings nor slows the soundtrack.
+The controller still uses its 24 fps timing rules. This isolates presentation
+cadence; adapting event exposure for a selected lower live cadence would be a
+separate step. Short contacts or accents can fall between sparse redraws.

@@ -86,8 +86,13 @@
 
 - Current comparison request: retain a pointed lower-lip spike during opening
   and exaggerate forward reach of the rounded/puckered mouth. Both A and B
-  include the stronger reach; only B adds spike retention. The user has not
-  selected a winner. Keep lower_lip_spike default 0 and the option available.
+  include the stronger reach; only B adds spike retention. The user selected
+  A. Keep lower_lip_spike default 0 and the stronger forward rounding.
+- The user requested comparison renders at 12 and 6 fps. These are presentation
+  experiments: hold existing poses at normal playback speed with original audio,
+  leaving the 24 fps controller/contact rules unchanged. Compare against 24 fps.
+  Do not switch the live default until the user selects a cadence. This explicit
+  request permits a 6 fps review despite the earlier 24/12 preference.
 - The private importer can compile guided additive endpoint corrections.
   Landmark indices and derived targets stay private. Use continuous fields
   across emitting/occluding geometry; selecting only source-moved vertices or

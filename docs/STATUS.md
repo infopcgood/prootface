@@ -8,13 +8,32 @@ rate is **24 fps**. The user explicitly reiterated: this must work in REAL TIME.
 No tongue or tooth rows. Preserve the selected visual identity and keep source
 assets and inspection details private. Hardware/ROS work remains secondary.
 
-## Current A/B: lower-lip spike and stronger forward rounding
+## Selected A and presentation-cadence comparison
+
+The user selected A: retain the existing lower contour, spike retention off,
+stronger rounded forward reach on. No geometry/default switch was needed.
+They requested 12 and 6 fps renders and an explanation of wearer calibration.
+
+The same six-second A performance is now available at true 24/12/6 fps with
+144/72/36 video frames respectively. Original audio and playback duration are
+identical. A synchronized three-column comparison holds the latest source pose
+at each presentation cadence. GIF panel changes were checked: every frame at
+24, every second at 12, and every fourth at 6. All files are six seconds long.
+This is presentation sampling of the same causal 24 fps controller, not a rerun
+with slower temporal rules. The live default remains 24 fps pending a choice.
+
+`tools/render_rate_comparison.py` reproduces the comparison from existing source
+frames and an audio-synchronized movie. It adds no runtime dependency. See
+`docs/CALIBRATION.md` for the actual five-stage calibration algorithm, operator
+capture procedure and current limits, including tracker-baseline consistency.
+
+## Earlier A/B: lower-lip spike and stronger forward rounding
 
 The user requested a comparison that sustains the lower lip's spike during
 opening, plus much stronger forward reach of rounded/puckered shapes. Both
 variants use the same stronger forward target. A retains the prior lower
-contour; B enables guided spike-relief corrections. The user has not chosen
-between them. `lower_lip_spike` remains 0 by default; `rounding_reach` is 1.
+contour; B enables guided spike-relief corrections. The user subsequently chose
+A. `lower_lip_spike` remains 0 by default; `rounding_reach` is 1.
 The private import settings now reproduce both options without source edits.
 
 The generic importer compiles optional sparse art-direction corrections from

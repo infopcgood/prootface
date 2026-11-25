@@ -199,8 +199,8 @@ calibration, pose timing or the large opening response in the rest of the mouth.
 
 The latest art-direction experiment compares the current lower lip with a
 version that retains pointed relief during opening. Both have stronger forward
-reach for the narrowing/rounding gesture. The user has not selected the lower
-contour variant; `lower_lip_spike` defaults to 0. `rounding_reach` defaults to 1.
+reach for the narrowing/rounding gesture. The user selected A, the existing lower
+contour; `lower_lip_spike` stays 0. `rounding_reach` defaults to 1.
 They are character-style controls and require no wearer recalibration.
 
 Private import settings may include `mouth_variants`. The generic compiler
