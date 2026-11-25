@@ -1,0 +1,37 @@
+name: Public video tracking sample
+on:
+  push:
+    paths:
+      - '.github/workflows/video-evaluation.yml'
+      - 'tools/track_video.py'
+permissions:
+  contents: read
+jobs:
+  track:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+      - name: Prepare upstream tracker
+        run: |
+          git clone https://github.com/emilianavt/OpenSeeFace.git /tmp/OpenSeeFace
+          git -C /tmp/OpenSeeFace checkout 50c09741897010faad721a218b2bbe14ecad6251
+          python -m pip install numpy==1.26.4 onnxruntime==1.18.1 opencv-python-headless==4.10.0.84 pillow==10.4.0
+          sudo apt-get update -qq
+          sudo apt-get install -y ffmpeg
+      - name: Download CC0 speech and prepare 24 fps sample
+        run: |
+          mkdir -p local/video-evaluation
+          curl --fail --location --retry 3 'https://upload.wikimedia.org/wikipedia/commons/3/3a/Dario_speaking_Fiorentino.webm' -o /tmp/speech.webm
+          ffmpeg -y -hide_banner -loglevel error -i /tmp/speech.webm -t 28 -vf 'fps=24,scale=640:-2' -c:v libx264 -crf 18 -c:a aac local/video-evaluation/source.mp4
+          printf '%s\n' 'Wikitongues: Dario speaking Fiorentino; CC0 1.0.' 'https://commons.wikimedia.org/wiki/File:Dario_speaking_Fiorentino.webm' 'Excerpt: 0-28 seconds; resampled to 24 fps. Audio retained for comparison only.' > local/video-evaluation/SOURCE.txt
+      - name: Measure chronological video frames
+        run: python tools/track_video.py --osf-root /tmp/OpenSeeFace --video local/video-evaluation/source.mp4 --output local/video-evaluation
+      - uses: actions/upload-artifact@v4
+        with:
+          name: public-speech-measurements
+          path: local/video-evaluation/
+          retention-days: 7
