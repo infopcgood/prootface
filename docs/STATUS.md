@@ -1,76 +1,78 @@
 # Status — 2026-11-25
 
-## Latest direction
+## Latest user direction
 
-The user criticized the first animation as not looking like proper animation,
-then explicitly instructed us to use authored phoneme poses as a starting point.
-This supersedes the earlier request to ignore those keys. Continue toward
-natural articulation while preserving the chosen visual identity.
+Use authored mouth poses as a starting point, exaggerate the visible shape
+changes like character animation, and work at a chosen 24 or 12 fps. The chosen
+rate is **24 fps**. The user explicitly reiterated: this must work in REAL TIME.
+No tongue or tooth rows. Preserve the selected visual identity and keep source
+assets and inspection details private. Hardware/ROS work remains secondary.
 
-Hardware: CM4 + Hailo-8, denser Sigma WS35 side displays. OpenSeeFace measures
-the wearer. Prioritize animation; leave hardware and ROS integration until later.
-No tongue or tooth rows. Keep reference data and inspection notes private.
+## Current behavior
 
-## Visual failures found
+- The live character clock and SSE presentation target 24 fps. Browser output
+  holds each frame as-is; it adds no monitor-rate pose interpolation.
+- Shape contrast pushes dominant open/round/wide silhouettes apart. A causal
+  hysteresis selector gives a family a two-frame minimum exposure while jaw
+  motion continues to follow current input. It does not wait for future frames.
+- Contact interrupts a shape hold immediately and gets two readable frames.
+  Neutral closure does not continually extend the deadline on release. Brief
+  contact onsets between output ticks are latched by the receiver.
+- Generic optional consonant channels are supported, but the OpenSeeFace adapter
+  does NOT infer them. Default tracking-mode review disables them completely.
+- The native review helper uses 24 fps frame-authored synthetic control goals,
+  then sends only supported channels through the same causal Animator used live.
+  A separate authored reference mode can use full consonant hints and is labeled.
+- Rendered MP4/GIF previews are synthetic replay, not real camera recordings.
+  Offline Blender is only a review renderer and never runs in the live path.
 
-The legacy raster-ribbon path inflated a closed symbol, retained an angular
-lower crease, shifted the whole design sideways and clipped some openings.
-Slow filtering plus a squared seal gate also swallowed short vowel openings.
-Those failures were confirmed by enlarged frame review and tracing controls.
-Do not present the legacy path or test counts as evidence of naturalness.
+## Architecture retained
 
-An automatic contour-corrective trial produced tearing and was discarded.
-The current baseline preserves authored topology and uses bounded blend weights.
+OpenSeeFace binary decoding, signed wearer calibration, monotonic freshness,
+tracking-loss relaxation and a privately configured authored morph basis remain
+separate. Indexed geometry, UVs, sparse target deltas and emission rendering are
+used for both anatomical side views. A fixed view covers configured mouth poses.
+Old raster-ribbon inflation and an automatic tearing corrective were rejected;
+do not restore either approach as the target rig.
 
-## Current implementation
-
-- Generic private morph import: indexed geometry, UVs, configured sparse pose
-  targets, emission texture and fixed view bounded across the mouth basis.
-- Schema-2 renderer: continuous authored-mesh blendspace with proper occlusion,
-  anatomical side depth and texture sampling. Older silhouette mode is legacy.
-- Nonnegative open/round/spread weights form a convex primary mouth basis.
-  Opening has a stronger bounded response. Expressions and blinks are separate.
-- Contact suppresses opening exactly and detaches with an 8 ms time constant.
-  The additional squared seal gate was removed.
-- Native review tools render the same private compiled mesh and Python-generated
-  weights as the WebGL path. They do not require source-specific names in code.
-- Current private runtime files use the authored-mesh format under ignored local/.
-  Public code contains no source assets, private mappings or derived geometry.
+Live path: measurements -> wearer normalization -> causal character controller
+-> authored morph weights -> WebGL/side outputs. No future audio alignment,
+phoneme schedule, native offline renderer or rendered-frame queue is required.
+Specialized consonant inference and actual-device evaluation remain future work.
 
 ## Verification
 
-- Python unittest: 22 passed.
+- Python unittest: 30 passed.
 - Node geometry/character/morph tests: 13 passed.
-- Tests include convex weights, closed/full authored endpoints, prompt contact
-  release, sparse pose application, unchanged source data and side projection.
-- CLI/HTTP smoke passed for the authored rig, texture endpoint, renderer modules
-  and both side-output routes. All rendered face pixels stayed inside the
-  fixed review frame throughout the new clip.
-- Enlarged render sequences were inspected; tearing trials were rejected.
-- Browser runtime and physical-panel appearance remain unverified. CM4 latency
-  and frame rate are unmeasured. Tests do not establish perceptual naturalness.
+- New regressions cover 24 fps key exposures, short closures, dominant-shape
+  contrast, bounded primary weights, no dependence on future inputs, continued
+  jaw response during family holds, contact interruption, and brief contacts
+  observed between output frames.
+- Live-server smoke observed the expected 24 fps target cadence and verified
+  schema-2 character/texture endpoints. This was not a CM4 test.
+- Native video verified as 24/1 fps; GIF preserves all source frame exposures.
+  Enlarged mouth frames were reviewed and no display-edge clipping was found.
+- Browser runtime, actual OpenSeeFace wearer capture, CM4 end-to-end latency and
+  physical-display performance remain unmeasured. Synthetic replay is not proof
+  of camera tracking accuracy or actual hardware throughput.
 
-## Earlier core and integration
+## Continuity and repository
 
-OpenSeeFace binary decoding, face selection, signed robust calibration,
-monotonic freshness and tracking-loss relaxation remain independently usable.
-See PIPELINE.md for the existing proto-ros2 path; that repository is unchanged.
-Future integration should consume its existing measurements and preserve screen
-ownership rather than starting another production UDP receiver.
-
-## Repository and privacy
-
-Public project: https://github.com/infopcgood/prootface, branch master.
-Previous checkpoint: 3bb66f0b3c80cf690865edeb23da9193bd298317.
-Publish generic code, tests and documentation only. Private source identifiers,
-object/key names, settings, textures, meshes and inspection notes stay out of
-public commits. Use an expected branch SHA and preserve concurrent changes.
+Public repository: https://github.com/infopcgood/prootface, branch master.
+Previous checkpoint: ae0384190d7200869291399884afd6437333823b.
+Private settings and runtime data remain under ignored local/. Publish reusable
+code and generic instructions only; never include source key/object names,
+reference identifiers, derived geometry, textures or private inspection notes.
+Use an expected branch SHA and preserve concurrent work.
 
 ## Next
 
-1. Review the authored-basis speaking animation against the earlier failure.
-2. Refine intermediate poses and timing from visual feedback; do not assume
-   that either raw source poses or a passing-test count establish naturalness.
-3. Test the same model with real OpenSeeFace wearer speech and tune calibration.
-4. Exercise both sides in a real browser and on the visor.
-5. Only then add measured LED mapping, ROS adaptation and CM4 profiling.
+1. Review the exaggerated 24 fps tracking-mode replay and refine its shape
+   response while keeping the live path causal.
+2. Capture real wearer measurements and replay them through the exact controller;
+   tune calibration and compare input movement, rendered response and delay.
+3. Improve any missing measured features before claiming detailed consonant
+   tracking. Do not fake live capability with a scripted phoneme reference.
+4. Exercise the real browser and CM4, then the visor. Keep 24 fps presentation.
+5. Integrate with the existing proto-ros2 pipeline only when animation is ready;
+   preserve screen ownership and use measured panel coordinates.

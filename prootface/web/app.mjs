@@ -6,10 +6,10 @@ const only=params.get('side');if(params.get('display')==='1')document.body.class
 let character=null;
 try{const response=await fetch('/api/character');if(response.ok)character=await response.json();}catch{}
 const renderers=['left','right'].filter(side=>!only||only===side).map(side=>new Renderer($('#'+side),side,character));
-if(character){$('footer').textContent=character.schema===2?'Authored pose basis · continuous articulation':'Legacy rest-silhouette study';}
+if(character){$('footer').textContent=character.schema===2?'24 fps · authored pose basis · causal live controller':'Legacy rest-silhouette study';}
 else{$('footer').textContent='Character asset not loaded · showing the original contour study';}
 if(only)document.querySelectorAll('figure').forEach(f=>{if(f.querySelector('canvas').id!==only)f.remove();});
-let state={pose:REST,style:{}},current={...REST},previousTime=performance.now(),lastSequence=-1;
+let state={pose:REST,style:{}},current={...REST},lastSequence=-1,lastRendered=-1;
 async function post(path,data={}){
  try{const response=await fetch(path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
  const result=await response.json();if(!response.ok)throw Error(result.error);$('#error').textContent='';return result;
@@ -26,7 +26,7 @@ const controls=[['opening','Jaw opening',0,1,0],['rounding','Rounding',0,1,0],['
  ['seal','Lip contact',0,1,1],['corner_left','Left corner',-1,1,0],['corner_right','Right corner',-1,1,0]];
 for(const [key,label,min,max,value] of controls)slider($('#controls'),key,label,min,max,value,(k,v)=>post('/api/control',{mode:'manual',controls:k==='opening'?{opening:v,seal:v<.01?1:0}:{[k]:v}}));
 for(const [key,label,min,max,value] of [['max_jaw_angle','Opening arc',.1,.65,.36],['recession','Backward recession',0,.35,.12],
- ['opening_gamma','Conversational restraint',.6,2,.85],['v_depth','Rear V point',.02,.30,.11]])
+ ['opening_gamma','Conversational restraint',.6,2,.85],['pose_contrast','Shape contrast',1,4,2.5],['v_depth','Rear V point',.02,.30,.11]])
  if((!character||key!=='v_depth')&&!(character?.schema===2&&key==='recession'))slider($('#styles'),key,character?.schema===2&&key==='max_jaw_angle'?'Opening strength':label,min,max,value,(k,v)=>post('/api/style',{[k]:v}));
 document.querySelectorAll('[data-mode]').forEach(b=>b.onclick=()=>post('/api/control',{mode:b.dataset.mode}));
 const presets={rest:{...REST},open:{...REST,opening:.65,seal:0},round:{...REST,opening:.5,rounding:.9,seal:0},
@@ -58,14 +58,13 @@ events.onmessage=e=>{
  }
 };
 events.onerror=()=>$('#connection').textContent='○ Reconnecting';
-function animate(now){
- const dt=Math.min(.1,(now-previousTime)/1000);previousTime=now;
- // The back end owns dynamics. This small render interpolation bridges 30 Hz transport.
- const alpha=1-Math.exp(-dt/.012);
- for(const [k,v] of Object.entries(state.pose))if(typeof v==='number')current[k]=(current[k]??v)+(v-(current[k]??v))*alpha;
- if(state.pose.seal>=.999){current.seal=1;current.aperture=0;current.jaw_angle=0;current.jaw_recession=0;}
- if(state.pose.seal>=.999)for(const [key,value] of Object.entries(state.pose))if(key.startsWith('blend_'))current[key]=value;
- for(const renderer of renderers)renderer.draw(current,state.style);
+function animate(){
+ // Present each authored character frame as-is. Browser refresh does not add
+ // intermediate poses or smooth away a one-frame transition at 24 fps.
+ if(state.sequence!==lastRendered){
+  lastRendered=state.sequence;current={...state.pose};
+  for(const renderer of renderers)renderer.draw(current,state.style);
+ }
  requestAnimationFrame(animate);
 }
 window.prootface={renderers,get state(){return state;},get pose(){return current;}};

@@ -121,3 +121,14 @@ response. Preview rendering consumes the same private mesh and Python-generated
 weights as the WebGL path. It is not a browser or CM4 capture. Automatic affine
 contour corrections were rejected after they produced visible tearing; do not
 revive them as an assumed improvement over authored geometry.
+
+
+## Latest style and realtime requirement
+
+The user requested exaggerated animation and a choice of 24 or 12 fps; the
+selected working rate is 24 fps. The user also reiterated that this must work
+in real time. Distinct key shapes, short causal exposures and fast transitions
+now take precedence over broad continuous interpolation. Preplanned phoneme
+timing is only a synthetic test-input source. The live controller uses no
+future measurements or phoneme schedule, and unsupported consonant channels
+are excluded from the default tracking-mode preview.

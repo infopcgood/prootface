@@ -141,6 +141,20 @@ class MotionTests(unittest.TestCase):
 
 
 class ApplicationTests(unittest.TestCase):
+    def test_brief_contact_between_animation_frames_is_not_lost(self):
+        with tempfile.TemporaryDirectory() as d:
+            app=Application(Path(d)/'cal.json');app.mode='live'
+            app.receive(packet(gap=25),10);app.tick(10)
+            app.receive(packet(gap=0),10.01)
+            app.receive(packet(gap=25),10.02)
+            app.tick(10+1/24)
+            self.assertEqual(app.snapshot['pose']['aperture'],0)
+            self.assertEqual(app.snapshot['animation_fps'],24)
+            app.tick(10+2/24)
+            self.assertEqual(app.snapshot['pose']['aperture'],0)
+            app.tick(10+3/24)
+            self.assertGreater(app.snapshot['pose']['aperture'],0)
+
     def test_live_face_selection_and_receive_clock_staleness(self):
         with tempfile.TemporaryDirectory() as d:
             app=Application(Path(d)/'cal.json',face_id=2)

@@ -33,3 +33,13 @@ class MorphPoseTests(unittest.TestCase):
         second=animator.step(dict(opening=.6,seal=0),1+1/60)
         self.assertGreater(first['aperture'],expected*.85)
         self.assertGreater(second['aperture'],expected*.97)
+
+    def test_family_contrast_pushes_dominant_shape_without_exceeding_basis(self):
+        p=pose_from_controls(dict(opening=.6,spread=.7,seal=0),Style())
+        self.assertGreater(p['blend_wide']/(p['blend_open']+p['blend_wide']),.88)
+        for seal in (0,.3,.7,1):
+            p=pose_from_controls(dict(opening=.8,rounding=1,bite=.7,sibilant=.8,
+                                     lip_press=1,seal=seal),Style())
+            total=sum(p['blend_'+key] for key in ('open','round','wide','bite',
+                                                'sibilant','postalveolar','rhotic','closed'))
+            self.assertLessEqual(total,1+1e-12)

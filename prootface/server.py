@@ -14,6 +14,7 @@ from urllib.parse import urlsplit
 from .calibration import CalibrationSession, Profile
 from .model import Animator, NEUTRAL, Style, demo_controls, pose_from_controls, retarget
 from .openseeface import decode_packet
+from .timing import ANIMATION_FPS,FRAME_SECONDS
 
 WEB = Path(__file__).parent / "web"
 
@@ -36,6 +37,8 @@ class Application:
         self.started = time.monotonic()
         self.stop = threading.Event()
         self.snapshot = {}
+        self.measurement_contact = True
+        self.contact_pending = False
 
     def receive(self, packet: bytes, now: float):
         try:
@@ -52,6 +55,9 @@ class Application:
                     if m.valid:
                         self.latest = m
                         if self.mode == "live":
+                            contact=retarget(m,self.profile)['seal']>=.98
+                            if contact and not self.measurement_contact:self.contact_pending=True
+                            self.measurement_contact=contact
                             self.session.add(m.signals(), m.aperture_ratio)
 
     def tick(self, now: float):
@@ -66,17 +72,21 @@ class Application:
             elif self.mode == "live":
                 label = "OpenSeeFace live" if fresh else "Tracking unavailable — easing to rest"
                 target = retarget(self.latest, self.profile) if fresh else NEUTRAL
+                if fresh and self.contact_pending:
+                    target={**target,'seal':1}
+                    self.contact_pending=False
                 active = fresh
             pose = self.animator.step(target, now, active)
             self.sequence += 1
             self.snapshot = dict(
-                sequence=self.sequence, mode=self.mode, label=label, pose=pose,
+                sequence=self.sequence, mode=self.mode, label=label, pose=pose,animation_fps=ANIMATION_FPS,
                 style=asdict(self.animator.style), age_ms=None if age is None else round(age*1000),
                 tracking=fresh, calibrated=self.profile.calibrated,
                 calibration=self.session.status(), received=self.received, rejected=self.rejected,
                 raw=self.latest.signals() if self.latest else None,
                 aperture_ratio=self.latest.aperture_ratio if self.latest else None,
-                limitations=["rounding is a narrowing proxy", "seal is inferred from lip aperture"],
+                limitations=["rounding is a narrowing proxy", "seal is inferred from lip aperture",
+                             "specialized consonant channels are not inferred from OpenSeeFace"],
             )
 
     def command(self, path: str, data: dict):
@@ -91,6 +101,7 @@ class Application:
                 pose_from_controls(proposed, self.animator.style)
                 self.manual = {k: float(proposed[k]) for k in NEUTRAL}
                 self.mode = mode
+                if mode!='live':self.contact_pending=False
             elif path == "/api/style":
                 allowed = {
                     "max_jaw_angle": (.1, .65), "recession": (0, .35),
@@ -98,6 +109,7 @@ class Application:
                     "asymmetry": (0, 1), "v_depth": (.02, .30),
                     "v_position": (.65, .92), "v_width": (.02, .10),
                     "lip_thickness": (.005, .04),
+                    "pose_contrast": (1,4),
                 }
                 proposed = asdict(self.animator.style)
                 for k, v in data.items():
@@ -140,7 +152,7 @@ def serve(args):
         while not app.stop.is_set():
             start = time.monotonic()
             app.tick(start)
-            app.stop.wait(max(0.001, 1/60 - (time.monotonic() - start)))
+            app.stop.wait(max(0.001, FRAME_SECONDS - (time.monotonic() - start)))
 
     class Handler(BaseHTTPRequestHandler):
         protocol_version = "HTTP/1.1"
@@ -180,7 +192,7 @@ def serve(args):
                             body = json.dumps(app.snapshot)
                         self.wfile.write(("data: " + body + "\n\n").encode())
                         self.wfile.flush()
-                        app.stop.wait(1/30)
+                        app.stop.wait(FRAME_SECONDS)
                 except (BrokenPipeError, ConnectionResetError):
                     pass
                 self.close_connection = True

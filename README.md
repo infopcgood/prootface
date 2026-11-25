@@ -9,6 +9,12 @@ The current path uses a privately configured authored mesh basis. It preserves
 rest identity, supports clear closures and persistent expression, and avoids
 the rejected raster-ribbon swelling and sideways squash. No tongue or tooth rows.
 
+**Working rate: 24 fps.** Mouth-shape changes are deliberately exaggerated:
+stronger silhouette contrast, short readable holds and fast transitions.
+The live controller uses only current/past measurements, keeps jaw motion
+responsive during shape holds and preserves brief contacts between output frames.
+Browser refresh does not generate extra interpolated poses.
+
 ## Run
 
 Python 3.10+ and a WebGL browser:
@@ -56,19 +62,24 @@ python tools/render_morph_sentence.py --character local/character.json --output 
 
 The native review renderer consumes the same compiled mesh and Python-generated
 blend weights as WebGL. It uses a fixed camera with room for the pose basis.
-This is a synthesized timing study, not a live camera recording, browser capture
-or CM4 performance benchmark. Naturalness still needs visual review.
+The default `--input-mode tracking` sends synthetic camera-supported controls
+through the actual causal controller. Unmeasured consonant hints are disabled.
+The optional `--input-mode authored` is a full scripted pose reference; it is
+not live tracking. Output is exactly 24 fps. Neither mode is a camera recording,
+browser capture or CM4 performance benchmark.
 
 ## Model boundaries
 
 Measurement, wearer calibration, character style, time and display projection
-remain separate. Open/round/spread samples blend continuously with nonnegative
-weights. Contact takes priority and releases promptly. Corner expression holds
+remain separate. Open/round/spread samples use contrasted, bounded weights. A mouth family gets
+a brief minimum exposure while jaw motion continues; contact interrupts it.
+Contact attaches immediately and receives a two-frame minimum exposure. Corner expression holds
 through articulation; lost tracking eases toward rest. Both side displays share
 one timed anatomical state and mirror only at projection.
 
 OpenSeeFace narrowing is a rounding proxy; seal is inferred from lip aperture.
-These are not independent muscle measurements. Actual panel geometry, LED map
+These are not independent muscle measurements. Specialized consonant controls
+are accepted by the model but are not currently inferred from OpenSeeFace. Actual panel geometry, LED map
 and CM4 performance remain unmeasured. No changes have been made to proto-ros2.
 
 ## Development

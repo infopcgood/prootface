@@ -76,7 +76,7 @@ def main():
     # Include a fixed margin for the smaller additive expression adjustments.
     bright=set(groups[True]);bounds=[]
     for i in bright:bounds.append(vertices[3*i:3*i+2])
-    for name in ('open','round','wide','closed'):
+    for name in ('open','round','wide','closed','bite','sibilant','postalveolar','rhotic'):
         target=targets.get(name,{})
         for j,i in enumerate(target.get('indices',[])):
             if i in bright:bounds.append([vertices[3*i]+target['deltas'][3*j],

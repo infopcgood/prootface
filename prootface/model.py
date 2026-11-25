@@ -4,6 +4,7 @@ from dataclasses import asdict, dataclass
 import math
 from .calibration import Profile, clamp
 from .openseeface import Measurement
+from .timing import FRAME_SECONDS
 
 
 @dataclass
@@ -17,11 +18,13 @@ class Style:
     v_position: float = 0.88
     v_width: float = 0.045
     lip_thickness: float = 0.016
+    pose_contrast: float = 2.5
 
 
 NEUTRAL = dict(opening=0.0, rounding=0.0, spread=0.0, seal=1.0,
                corner_left=0.0, corner_right=0.0, tension=0.0,
-               eye_left=1.0, eye_right=1.0, brow_left=0.0, brow_right=0.0)
+               eye_left=1.0, eye_right=1.0, brow_left=0.0, brow_right=0.0,
+               bite=0.0,sibilant=0.0,postalveolar=0.0,rhotic=0.0,lip_press=0.0)
 
 
 def retarget(m: Measurement, profile: Profile) -> dict[str, float]:
@@ -44,7 +47,7 @@ def retarget(m: Measurement, profile: Profile) -> dict[str, float]:
     )
 
 
-def pose_from_controls(controls: dict[str, float], style: Style) -> dict:
+def pose_from_controls(controls: dict[str, float], style: Style, family_index: int | None = None) -> dict:
     c = dict(NEUTRAL)
     for k, v in controls.items():
         if k in c:
@@ -57,20 +60,34 @@ def pose_from_controls(controls: dict[str, float], style: Style) -> dict:
         f"corner_{side}_render": average + style.asymmetry * (c[f"corner_{side}"] - average)
         for side in ("left", "right")
     }
-    visible = c["opening"] ** style.opening_gamma * (1 - c["seal"])
+    gate = 1-c['seal']
+    powered = c['opening']**style.opening_gamma
+    visible = powered*gate
     # Ease into the readable part of an authored opening sample. The source
     # feature is calibrated movement, not a physical percentage of mesh travel.
-    strength = clamp(visible*style.max_jaw_angle/.36)
-    articulation = strength*(2-strength)
+    strength = clamp(powered*style.max_jaw_angle/.36)
+    articulation = strength*(2-strength)*gate
     # Authored pose samples form a convex mouth basis. Width changes select
     # articulation, rather than squashing the entire closed silhouette.
     rounding, spreading = c['rounding'], c['spread']
     total = max(1.0, rounding+spreading)
     rounded, wide = rounding/total, spreading/total
     neutral = max(0.0,1-rounded-wide)
-    blends = dict(blend_open=articulation*neutral,
-                  blend_round=articulation*rounded, blend_wide=articulation*wide,
-                  blend_closed=c['seal']*min(.45,c['opening']*.8))
+    family=[value**style.pose_contrast for value in (neutral,rounded,wide)]
+    family_total=sum(family)
+    family=[value/family_total for value in family]
+    if family_index is not None:
+        family=[.35*value+(.65 if i==family_index else 0) for i,value in enumerate(family)]
+    neutral,rounded,wide=family
+    extra_total=sum(c[key] for key in ('bite','sibilant','postalveolar','rhotic'))
+    extra_norm=max(1,extra_total)
+    vowel_gain=1-min(1,extra_total)
+    blends = dict(blend_open=articulation*neutral*vowel_gain,
+                  blend_round=articulation*rounded*vowel_gain,
+                  blend_wide=articulation*wide*vowel_gain,
+                  blend_closed=c['seal']*max(c['lip_press'],min(.45,c['opening']*.8)))
+    for key in ('bite','sibilant','postalveolar','rhotic'):
+        blends['blend_'+key]=gate*c[key]/extra_norm
     for side in ('left','right'):
         corner=rendered_corners[f'corner_{side}_render']
         blends[f'blend_smile_{side}']=max(0,corner)*.55
@@ -89,13 +106,21 @@ class Animator:
         self.last_time: float | None = None
         self.last_raw = dict(NEUTRAL)
         self.derivative = {k: 0.0 for k in NEUTRAL}
+        self.family_index = 0
+        self.family_since = None
+        self.contact_active = True
+        self.contact_until = -math.inf
 
     def step(self, target: dict[str, float], now: float, tracked: bool = True) -> dict:
         if not math.isfinite(now) or (self.last_time is not None and now < self.last_time):
             raise ValueError("Animation time must be finite and monotonic")
-        dt = 1 / 60 if self.last_time is None else min(0.1, now - self.last_time)
+        dt = FRAME_SECONDS if self.last_time is None else min(0.1, now - self.last_time)
         self.last_time = now
         clean = pose_from_controls(target, self.style)  # validate before modifying state
+        contact=clean['seal']>=.98
+        if tracked and contact and not self.contact_active:
+            self.contact_until=now+2*FRAME_SECONDS
+        self.contact_active=contact
         for k, old in self.controls.items():
             value = clean[k] if tracked else NEUTRAL[k]
             # Speed-adaptive low pass: stable rest, faster deliberate articulation.
@@ -105,17 +130,24 @@ class Animator:
                 self.derivative[k] += (speed-self.derivative[k]) * (1-math.exp(-dt*2*math.pi))
             self.last_raw[k] = value
             mouth = k in ("opening", "rounding", "spread", "seal")
-            cutoff = (5.0 if mouth else 2.8) + (.7 if mouth else .3)*abs(self.derivative[k])
+            cutoff = (8.0 if mouth else 2.8) + (.7 if mouth else .3)*abs(self.derivative[k])
             tau = 1/(2*math.pi*cutoff) if tracked else .14
             if tracked and k == 'seal':
                 # Contact can attach quickly, and must detach promptly as well.
                 # Reusing the jaw low-pass here swallowed short vowel openings.
                 tau = .008 if value < old else .012
             self.controls[k] += (value - old) * (1 - math.exp(-dt / tau))
-        if tracked and clean["seal"] >= 0.98:
+        if tracked and (contact or now<self.contact_until-1e-9):
             # Contact priority prevents filtering or smile correctives leaking a gap.
             self.controls["seal"] = 1.0
-        return pose_from_controls(self.controls, self.style)
+        r,w=self.controls['rounding'],self.controls['spread']
+        total=max(1,r+w);scores=[max(0,1-r/total-w/total),r/total,w/total]
+        candidate=max(range(3),key=lambda i:scores[i])
+        if (self.family_since is None or
+            (candidate!=self.family_index and scores[candidate]>scores[self.family_index]+.15 and
+             (now-self.family_since>=2*FRAME_SECONDS-1e-9 or contact))):
+            self.family_index=candidate;self.family_since=now
+        return pose_from_controls(self.controls,self.style,self.family_index)
 
 
 def _monotone_value(times: list[float], values: list[float], t: float) -> float:

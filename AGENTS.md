@@ -12,12 +12,22 @@
 - Latest explicit user correction: use the avatar's authored phoneme poses as
   a starting point. This supersedes the earlier instruction to ignore them.
   Preserve the chosen rest identity, curate an authored basis, and improve
-  continuous blending, contact timing and pose response. Do not switch poses
-  abruptly or treat the source keys as a finished performance.
+  blending, contact timing and pose response. Use purposeful transitions and
+  holds; do not wash out key shapes or treat source keys as a finished performance.
 - No tongue, tooth rows or detached fangs. Do not return to the rejected thick
   metallic/ribbed lip strips. The supplied rest identity takes precedence over
   earlier provisional geometry and approximate notch-placement descriptions.
 - Prioritize natural motion. Leave transport and hardware integration for later.
+- Latest style instruction: exaggerate the visible mouth-shape changes like
+  character animation. The chosen working rate is 24 FPS for new authoring,
+  runtime presentation and previews. Do not return to 30/60 fps output or
+  interpolate additional poses in the browser. Use readable brief exposures,
+  strong shape contrast and purposeful fast transitions.
+- This must work in REAL TIME. The live controller is causal: current/past
+  OpenSeeFace measurements only, no future phonemes, audio alignment or offline
+  rendering in the runtime. A scripted reference is not proof of live tracking.
+  Label synthetic replay as such. Specialized consonant hints are not currently
+  measured by OpenSeeFace; do not show them as tracked capabilities.
 
 ## Asset privacy
 

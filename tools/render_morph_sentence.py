@@ -16,8 +16,9 @@ from PIL import Image, ImageDraw, ImageFont
 
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT))
-from prootface.model import Animator
+from prootface.model import Animator,Style,pose_from_controls
 from prootface.performance import SpeakingExample
+from prootface.timing import ANIMATION_FPS
 
 
 def main():
@@ -25,15 +26,23 @@ def main():
     parser.add_argument('--character',type=Path,default=Path('local/character.json'))
     parser.add_argument('--speech',type=Path,default=Path('local/sentence'))
     parser.add_argument('--output',type=Path,default=Path('local/morph-preview'))
-    parser.add_argument('--fps',type=int,default=30)
+    parser.add_argument('--fps',type=int,choices=[ANIMATION_FPS],default=ANIMATION_FPS)
     parser.add_argument('--speed',type=float,default=.85)
+    parser.add_argument('--input-mode',choices=['tracking','authored'],default='tracking',
+                        help='Tracking: synthetic camera-supported controls through causal live controller; authored: full pose reference')
     args=parser.parse_args()
     args.output.mkdir(parents=True,exist_ok=True)
     example=SpeakingExample(json.loads((args.speech/'phonemes.json').read_text()))
     before,after=.65,.85
-    count=math.ceil((before+example.duration/args.speed+after)*args.fps)
-    animator=Animator()
-    poses=[animator.step(example.controls((i/args.fps-before)*args.speed),i/args.fps) for i in range(count)]
+    controls,exposures=example.keyed_frames(before,after,args.speed)
+    count=len(controls)
+    if args.input_mode=='tracking':
+        animator=Animator()
+        for control in controls:
+            for key in ('bite','sibilant','postalveolar','rhotic','lip_press'):control[key]=0
+        poses=[animator.step(control,i/ANIMATION_FPS) for i,control in enumerate(controls)]
+    else:
+        poses=[pose_from_controls(control,Style()) for control in controls]
     poses_path=args.output/'poses.json';poses_path.write_text(json.dumps(poses))
     with (args.output/'blender.log').open('w') as log:
         subprocess.run(['blender','--background','--factory-startup','--disable-autoexec','--python',
@@ -42,7 +51,7 @@ def main():
                        stdout=log,stderr=subprocess.STDOUT,check=True)
     font_path='/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf'
     font=lambda size:ImageFont.truetype(font_path,size)
-    movie=args.output/'speaking-revised.mp4'
+    movie=args.output/f'speaking-{ANIMATION_FPS}fps.mp4'
     command=['ffmpeg','-y','-hide_banner','-loglevel','error','-f','rawvideo','-pix_fmt','rgb24',
              '-s','1200x820','-r',str(args.fps),'-i','pipe:0','-i',str(args.speech/'voice.wav'),
              '-filter_complex',f'[1:a]atempo={args.speed},adelay={round(before*1000)},apad[a]',
@@ -58,8 +67,10 @@ def main():
         try:
             for index,pose in enumerate(poses):
                 board=Image.new('RGB',(1200,820),'#0a0e14');draw=ImageDraw.Draw(board)
-                draw.text((40,25),'prootface / revised articulation',font=font(25),fill='#e5ebf3')
-                draw.text((40,64),'Authored mouth poses · continuous blending · fixed camera',font=font(17),fill='#94a9bf')
+                draw.text((40,25),'prootface / expressive pass · 24 fps',font=font(25),fill='#e5ebf3')
+                subtitle=('Synthetic tracking controls · causal live controller · 24 fps' if args.input_mode=='tracking' else
+                          'Scripted pose reference · full consonant hints · 24 fps')
+                draw.text((40,64),subtitle,font=font(17),fill='#94a9bf')
                 text=example.text;active=example.word((index/args.fps-before)*args.speed)
                 words=text.split();f=font(31);widths=[draw.textlength(w,font=f) for w in words]
                 x=(1200-sum(widths)-12*(len(words)-1))/2
@@ -78,7 +89,8 @@ def main():
     review.save(args.output/'review-frames.png')
     metadata=dict(text=example.text,frames=count,fps=args.fps,duration=count/args.fps,
                   basis='Privately configured authored poses',camera='Fixed, bounded across the pose basis',
-                  browser_capture=False)
+                  browser_capture=False,exposures=exposures,input_mode=args.input_mode,
+                  live_recording=False,future_frames_used_by_controller=0)
     (args.output/'metadata.json').write_text(json.dumps(metadata,indent=2)+'\n')
     print(movie,flush=True)
 

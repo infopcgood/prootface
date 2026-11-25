@@ -20,6 +20,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 from prootface.model import Animator
 from prootface.performance import SpeakingExample
+from prootface.timing import ANIMATION_FPS
 
 
 def main():
@@ -27,7 +28,7 @@ def main():
     parser.add_argument('--character', type=Path, default=Path('local/character.json'))
     parser.add_argument('--speech', type=Path, default=Path('local/sentence'))
     parser.add_argument('--output', type=Path, default=Path('local/preview'))
-    parser.add_argument('--fps', type=int, default=60)
+    parser.add_argument('--fps', type=int, choices=[ANIMATION_FPS], default=ANIMATION_FPS)
     parser.add_argument('--speed', type=float, default=.85)
     args = parser.parse_args()
     if not 12 <= args.fps <= 120 or not .5 <= args.speed <= 2:

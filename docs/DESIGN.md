@@ -41,23 +41,26 @@ After filtering, visible opening is:
 
 Opening strength maps it to a bounded authored response:
 
-`s = clamp(v * opening_strength / .36)`
+`s = clamp(opening^gamma * opening_strength / .36)`
 
-`a = s * (2 - s)`
+`a = s * (2 - s) * (1 - seal)`
 
 This increases readability in the middle of the calibrated feature range and
 preserves exact closed/full endpoints. The input feature is not a physical
 percentage of a mesh's jaw travel. Default gamma is .85.
 
-Normalize rounding and spread by `max(1, rounding + spread)` to obtain `r` and
-`w`. The primary mouth weights are:
+Normalize rounding and spread by `max(1, rounding + spread)`. Apply the 2.5
+contrast power to the resulting three-family vector, renormalize, then apply
+the causal held-family bias. Call the resulting round and wide coefficients
+`r` and `w`. Without an optional consonant override, primary mouth weights are:
 
 - Open: `a * (1-r-w)`.
 - Rounded: `a * r`.
 - Spread: `a * w`.
 
-They are nonnegative and sum to at most one. Thus articulation remains inside
-the configured mouth basis. At seal=1 all opening weights are zero. A bounded
+They are nonnegative and sum to at most one. Optional consonant contributions
+use the remaining gated basis capacity and reduce the vowel contribution, so
+the primary mouth blend stays bounded even during partial contact. At seal=1 all opening weights are zero. A bounded
 closed-pose contribution can follow latent opening during contact; it must be
 mapped to an actually closed sample. Mild pucker, smile/frown and blink channels
 remain separate, so expression persists across articulation.
@@ -111,3 +114,43 @@ Higher LED density improves sampling, not emitting area, physical silhouette
 or observer-dependent parallax. Physical Sigma WS35 panel angles, pitch and
 LED coordinates remain unmeasured. Perceptual acceptance requires actual motion
 review and wearer recordings, then browser and real-visor evaluation.
+
+
+## Current 24 fps animation policy (supersedes earlier timing defaults)
+
+The chosen authoring and presentation rate is 24 fps. Shape changes should be
+exaggerated and readable, not continuously averaged into similar middle poses.
+The server steps at that rate and the browser presents each resulting frame
+unchanged, without generating in-between poses at monitor refresh rate.
+
+The live driver is causal. A speed-adaptive input filter uses current/past
+measurements. Mouth filtering has an 8 Hz base cutoff. A dominant-family selector
+uses hysteresis and a two-frame minimum exposure; the jaw continues updating
+during that exposure. A new contact interrupts any shape hold immediately and
+has a two-frame minimum exposure. This uses a timer, not future-frame buffering.
+Long neutral closure does not keep extending the hold after the mouth opens.
+The UDP receiver latches brief contact onsets that happen between character
+frames, so a short observed closure is not silently dropped.
+
+Before dominant-family selection, normalized open/round/wide coefficients are
+raised to a 2.5 contrast power and renormalized. The held family receives a
+bounded bias, preserving distinct silhouettes. Contact gates mouth weights
+AFTER the opening response, so open, specialized and closed mouth contributions
+remain within the configured primary basis even during partial contact.
+
+The model also accepts optional bite, sibilant, postalveolar, rhotic and lip-press
+controls. These are NOT inferred by the present OpenSeeFace adapter. They are
+zero in tracking-mode replay and live input unless independently supplied.
+Do not present a scripted consonant reference as a tracked capability.
+
+The review authoring helper schedules significant mouth goals on the 24 fps
+frame grid, anticipates a goal by one frame, holds strong vowels and closures,
+and uses brief in-betweens across gaps. That planner may use known speech timing;
+it is a demo input source, never part of the live controller. The default
+review replays only supported control channels through the causal Animator.
+The full authored reference bypasses sensor filtering and is labeled separately.
+
+Realtime here describes the controller architecture and live processing path.
+CM4 end-to-end latency and rendering performance still require actual-device
+measurement. Offline Blender is only a review renderer; it is not in the live
+measurement-to-pose-to-WebGL path.
