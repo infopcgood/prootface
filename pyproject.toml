@@ -1,0 +1,17 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "prootface"
+version = "0.1.0"
+description = "Character-specific mouth retargeting for two flat protogen visor displays"
+requires-python = ">=3.10"
+dependencies = []
+
+[project.scripts]
+prootface = "prootface.__main__:main"
+
+[tool.setuptools.package-data]
+prootface = ["web/*"]
+

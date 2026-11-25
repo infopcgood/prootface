@@ -6,6 +6,7 @@
 - The goal is a dimensional, restrained, Nick-in-Zootopia-like mouth: plausible lip contact, lower-jaw opening with backward recession, controlled rear corners and a shaded cavity.
 - Latest user correction: NO tongue and NO tooth rows. Use ONE V-shaped sharp point integrated with the rear/eye-side lip line of EACH side view. It is part of the lip contour, not a floating tooth.
 - Do not revert to a luminous zigzag/emoji mouth as the default.
+- Latest hardware choice: Sigma WS35 version with a denser LED display. Use WS35 layout as the physical reference, NOT the rectangular HUB75 variant. Pixel pitch/density and actual LED coordinates remain configurable and unmeasured. Do not assume the original WS2812 protocol or original LED count.
 - Two flat displays cannot reproduce actual silhouette deformation, a continuous curved display, or viewpoint-correct parallax for every observer. Make two calibrated views of one shared anatomical state; do not claim those physical limitations are solved.
 
 ## Research and provenance
@@ -30,4 +31,11 @@
 - Keep commits reviewable, preserve user changes and never force-push over concurrent work.
 
 ## Sigma reference update
-- Creator repository is coelacant1/Protogen-3D-Prints, SigmaProtogen/. Inspect its Pictures/HUB75.png and SigmaBottom.png. The paired flat panels form canted sides behind a curved visor, with a non-emissive central nose gap. Keep physical panel geometry separate from virtual mouth camera orientation; do not invent measured mounting angles from marketing images or print-oriented STLs.
+- Creator repository: coelacant1/Protogen-3D-Prints, SigmaProtogen/.
+- Pictures/HUB75.png shows two canted flat panels behind a curved visor, with a central non-emissive nose gap.
+- Keep physical panel placement separate from virtual mouth camera yaw. Do not infer exact mounting angles from pictures or print-oriented STLs.
+
+
+## Latest integration boundary
+- User asked to prioritize natural animation and leave transport/hardware technicalities until later.
+- Existing pipeline lives in infopcgood/proto-ros2; consult its current files before integrating. Keep this first character model independently previewable and document its future insertion point. Do not modify proto-ros2 without a task requiring that work.

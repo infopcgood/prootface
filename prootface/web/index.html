@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Prootface · Mouth studies</title><link rel="stylesheet" href="/style.css"></head>
+<body>
+<header><a class="brand" href="/">prootface<span>motion studies / 01</span></a><div id="connection">Connecting</div></header>
+<main>
+ <div class="intro"><p class="eyebrow">A CHARACTER, IN MOTION</p><h1>One expression.<br>Two sides of the same face.</h1>
+ <p>A dimensional mouth study for a Sigma WS35 silhouette. Restrained corners, a receding jaw, and one attached rear V point.</p></div>
+ <section class="stage" aria-label="Live mouth preview"><div class="stage-top"><span id="scene">Rest / contact</span><span id="status">Shared pose</span></div>
+ <div class="panels"><figure><canvas id="left" aria-label="Anatomical left mouth"></canvas><figcaption>LEFT SIDE <a href="/?side=left&display=1" target="_blank">Open output ↗</a></figcaption></figure>
+ <div class="nose-gap" title="Non-emissive nose gap"></div><figure><canvas id="right" aria-label="Anatomical right mouth"></canvas><figcaption>RIGHT SIDE <a href="/?side=right&display=1" target="_blank">Open output ↗</a></figcaption></figure></div>
+ <div class="stage-bottom"><span>No tongue · no tooth rows</span><span>WS35 outline is a placement study, not measured fit</span></div></section>
+ <nav id="modes" aria-label="Input source"><button data-mode="demo" class="selected">Performance study</button><button data-mode="manual">Pose controls</button><button data-mode="live">OpenSeeFace</button></nav>
+ <section class="workspace"><div class="card"><h2>Articulation</h2><p>Explore opening while preserving the character’s expression.</p><div id="controls"></div>
+  <div class="presets"><button data-preset="rest">Contact</button><button data-preset="open">Open</button><button data-preset="round">Rounded</button><button data-preset="smile">Speaking smile</button><button data-preset="smirk">Smirk</button></div></div>
+ <div class="card"><h2>Character rules</h2><p>Change the movement path, without changing your calibration.</p><div id="styles"></div>
+ <label class="check"><input id="mask" type="checkbox" checked> Preview WS35 silhouette</label><label class="check"><input id="placement" type="checkbox"> Show panel placement schematic</label>
+ <label>LED-density study<select id="density"><option value="0">Continuous surface</option><option value="96">96 columns</option><option value="192">192 columns</option><option value="384">384 columns</option></select></label>
+ <p class="note">Density options are visual studies. Actual LED positions and panel angles are not assumed.</p></div></section>
+ <details class="card calibration"><summary>Wearer calibration <span id="calibrated">Default ranges</span></summary>
+ <p>With live tracking, capture each action for roughly two seconds. Keep lips together during neutral and smile. Narrowing is only a rounding proxy.</p>
+ <div id="calibration-stages"></div><button id="stop-capture">Stop capture</button><button id="save-calibration">Save wearer profile</button>
+ <p id="calibration-status" aria-live="polite"></p></details>
+ <p id="error" role="alert"></p><footer>Original procedural study. Realistic lip behaviour is the goal; this is an editable motion prototype.</footer>
+</main><script type="module" src="/app.mjs"></script></body></html>
+
