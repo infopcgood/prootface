@@ -1,9 +1,30 @@
 # Mouth and display reference research
 
 Research snapshot: 2026-11-25. Separate observations from design choices. The
-linked artist images/CAD were inspected as references; none is redistributed.
+Reference access and inspection limits are recorded below; none of the linked
+artist images, CAD or avatar assets is redistributed.
 
 ## Original visual references
+
+### Latest user-specified shape reference: Triwave
+
+[Triwave's creator page](https://triwave.carrd.co/) provides original preview
+images and a public Google Drive link for the protogen avatar. The user specified
+that the mouth shape is useful but the light VRChat use/limited animation must
+NOT constrain this project's animation quality. Treat it as a static design
+reference; retain natural speech, closure and expression work from film research.
+
+Opened creator page, banner and public gallery preview through web retrieval.
+Direct image download and inspection of the actual Blender/FBX mouth mesh were
+not available in this environment. Do not invent extracted control points,
+mesh topology or measured blendshape trajectories from those previews. Current
+contours remain original/provisional and need comparison against a usable
+close-up reference or the actual model in the next visual-design pass.
+
+The first implementation's thick, metallic/ribbed lip strips were explicitly
+rejected by the user as terrifying. They are not an acceptable direction. The
+new study removes those strips and emphasizes contour, restrained aperture and
+the small integrated rear V. Do not describe this revision as user-approved.
 
 | Reference | Observation / implication |
 | --- | --- |
@@ -30,7 +51,8 @@ target dimensional lip behaviour with a single attached rear V, no tooth rows.
   blob `29be1f847820ac889546bc7d1312abec8c24b2e6`: audio-reactive interpolation
   between closed/open XBM mouths is a useful baseline, but cannot independently
   recover the wearer's rounding, smile or contact.
-- [OpenSeeFace sender](https://github.com/emilianavt/OpenSeeFace/blob/205b2fbc8ba2615c70a7029a9248082ca65627d9/facetracker.py)
+- [OpenSeeFace sender](https://github.com/emilianavt/OpenSeeFace/blob/master/facetracker.py)
+  (inspected file-blob SHA `205b2fbc8ba2615c70a7029a9248082ca65627d9`)
   and `tracker.py`: actual packet and feature semantics. Header is 73 bytes;
   68 confidences, 68 2D points, 70 3D points and 14 features give 1785 bytes per
   face. No packet-wide alignment padding. Upstream packs each scalar separately.

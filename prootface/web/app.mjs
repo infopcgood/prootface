@@ -20,9 +20,9 @@ function slider(parent,key,label,min,max,value,onChange){
 }
 const controls=[['opening','Jaw opening',0,1,0],['rounding','Rounding',0,1,0],['spread','Spreading',0,1,0],
  ['seal','Lip contact',0,1,1],['corner_left','Left corner',-1,1,0],['corner_right','Right corner',-1,1,0]];
-for(const [key,label,min,max,value] of controls)slider($('#controls'),key,label,min,max,value,(k,v)=>post('/api/control',{mode:'manual',controls:{[k]:v}}));
-for(const [key,label,min,max,value] of [['max_jaw_angle','Opening arc',.1,.65,.44],['recession','Backward recession',0,.35,.12],
- ['opening_gamma','Conversational restraint',.6,2,1.22],['v_depth','Rear V point',.02,.30,.18]])
+for(const [key,label,min,max,value] of controls)slider($('#controls'),key,label,min,max,value,(k,v)=>post('/api/control',{mode:'manual',controls:k==='opening'?{opening:v,seal:v<.01?1:0}:{[k]:v}}));
+for(const [key,label,min,max,value] of [['max_jaw_angle','Opening arc',.1,.65,.36],['recession','Backward recession',0,.35,.12],
+ ['opening_gamma','Conversational restraint',.6,2,1.22],['v_depth','Rear V point',.02,.30,.11]])
  slider($('#styles'),key,label,min,max,value,(k,v)=>post('/api/style',{[k]:v}));
 document.querySelectorAll('[data-mode]').forEach(b=>b.onclick=()=>post('/api/control',{mode:b.dataset.mode}));
 const presets={rest:{...REST},open:{...REST,opening:.65,seal:0},round:{...REST,opening:.5,rounding:.9,seal:0},

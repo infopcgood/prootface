@@ -15,16 +15,19 @@ const FS=`
 precision mediump float;
 uniform bool maskEnabled;uniform vec2 polygon[6];uniform float grid;
 varying vec3 vNormal;varying vec3 vPosition;varying vec4 vColor;varying vec2 vUV;
-bool inside(vec2 p){bool v=false;int j=5;for(int i=0;i<6;i++){
- vec2 a=polygon[i],b=polygon[j];
- if((a.y>p.y)!=(b.y>p.y)&&p.x<(b.x-a.x)*(p.y-a.y)/(b.y-a.y)+a.x)v=!v;j=i;}return v;}
+bool crosses(vec2 p,vec2 a,vec2 b){return (a.y>p.y)!=(b.y>p.y)&&p.x<(b.x-a.x)*(p.y-a.y)/(b.y-a.y)+a.x;}
+bool inside(vec2 p){bool v=crosses(p,polygon[0],polygon[5]);
+ v=v!=crosses(p,polygon[1],polygon[0]);v=v!=crosses(p,polygon[2],polygon[1]);
+ v=v!=crosses(p,polygon[3],polygon[2]);v=v!=crosses(p,polygon[4],polygon[3]);
+ return v!=crosses(p,polygon[5],polygon[4]);}
 void main(){
  if(maskEnabled&&!inside(vUV))discard;
  if(vColor.a<.005)discard;
- vec3 n=normalize(vNormal);if(!gl_FrontFacing)n=-n;
+ // Mirroring a display reverses winding; it must not reverse its lighting.
+ vec3 n=normalize(vNormal);if(n.z<0.)n=-n;
  vec3 light=normalize(vec3(-.4,.8,1.3));
  float diffuse=.32+.68*max(0.,dot(n,light));
- float shine=pow(max(0.,dot(reflect(-light,n),vec3(0.,0.,1.))),22.)*.11;
+ float shine=0.;
  vec3 rgb=vColor.rgb*diffuse+vec3(shine)*min(1.,length(vColor.rgb)*2.);
  if(grid>0.){vec2 g=fract(vUV*vec2(grid,grid*.56));float dotMask=1.-smoothstep(.32,.48,length(g-.5));rgb*=.25+.75*dotMask;}
  gl_FragColor=vec4(rgb,vColor.a);

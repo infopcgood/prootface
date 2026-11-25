@@ -5,9 +5,17 @@
 The user's priority is natural animation. Hardware output and transport
 integration come later. A CM4 + Hailo-8 is the target host, but OpenSeeFace owns
 measurement and this project does not change or compile its neural models.
-Use a shaded, dimensional, restrained muzzle-like mouth. No tongue, gums or
-tooth rows. Exactly one V point per side, continuous with the posterior lip.
-Its attachment is geometric, not a detached tooth positioned over an image.
+Use Triwave's protogen as the static mouth-shape reference. The user clarified
+that the reference has limited animation for light VRChat use; that limited
+motion is not the goal here. Natural articulation remains the goal, informed
+by the Zootopia research. No tongue, gums or tooth rows. Exactly one V point
+per side, continuous with the posterior lip. Its attachment is geometric.
+
+The first metallic, ribbed lip-strip render was explicitly rejected. The
+current revision uses a thin clean contour and subdued cavity. It remains an
+original provisional study: Triwave's mesh has not been inspected, and its
+precise contour has not been reproduced. Get visual agreement before investing
+in more surface shading or treating these proportions as the final character.
 
 ## Layer boundaries
 
@@ -17,7 +25,7 @@ Its attachment is geometric, not a detached tooth positioned over an image.
 4. Time: motion-dependent response, contact priority, tracking-loss recovery.
 5. Character pose: bounded opening curve, jaw angle, recession, width and
    independent anatomical corners.
-6. Appearance: continuous upper/lower profile surfaces, recessed cavity,
+6. Appearance: continuous upper/lower profile contours, recessed cavity,
    posterior V and a restrained eye marker for orientation.
 7. Display: side projection, mirroring, panel mask and eventual pixel sampling.
 
@@ -27,8 +35,8 @@ appearance. A style change must not require repeating wearer calibration.
 ## Transfer of film-animation findings
 
 - Nick's animators described a receding jaw opening to avoid a crocodile-like
-  hinge. Here the lower contour follows a rotational arc around a posterior
-  hinge, with a separate bounded recession term. This is our adaptation, not
+  hinge. Here a curved opening envelope and a bounded rotational/recession
+  term pull the lower contour down and back. This is our adaptation, not
   Disney's undisclosed rig implementation.
 - Judy's narrowed mouth corners preserved appeal and tooth visibility. Here
   the width envelope and corner motion are bounded separately from opening.
@@ -41,15 +49,23 @@ appearance. A style change must not require repeating wearer calibration.
 
 ## Current geometry
 
-This first model is 2.5D: original deformable profile strips with surface depth
-and lighting, not an anatomically complete shared 3D skull. Both sides share
+This model is 2.5D: original thin deformable profile contours with a shallow
+shaded cavity, not an anatomically complete shared 3D skull. Both sides share
 articulation and time; each has its own anatomical corner.
 
-The upper contour remains comparatively stable. The lower lip rotates down
-and back, the rear corner stays restrained, and a corrective lower contour
-maintains contact around the V when closing. The cavity recedes behind both
-lips. At complete closure both contours coincide. No text or third-party art
-is baked into the face mesh.
+The upper contour remains comparatively stable. The lower contour follows a
+rounded opening envelope and moves back; front and rear return to contact
+instead of making a rigid wedge. The rear expression persists during speech.
+A corrective lower contour maintains contact around the V when closing. At
+complete closure both contours coincide. The cavity recedes behind both
+contours. No text or third-party art is baked into the face mesh.
+
+Static shape, expression and articulation are distinct: the baseline and rear
+V define the provisional rest identity; slower corner lift carries expression;
+opening, recession and width changes carry articulation. A future authored
+Triwave-informed contour must replace the rest shape without replacing those
+motion rules or forcing the wearer to recalibrate. Current rounding changes
+width only; a full pucker/protrusion corrective is not yet implemented.
 
 The V is evaluated directly within the upper contour using a compact triangular
 basis. Samples include its exact two roots and tip, so it cannot detach when

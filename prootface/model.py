@@ -8,15 +8,15 @@ from .openseeface import Measurement
 
 @dataclass
 class Style:
-    max_jaw_angle: float = 0.44
+    max_jaw_angle: float = 0.36
     recession: float = 0.12
     opening_gamma: float = 1.22
     max_corner_lift: float = 0.20
     asymmetry: float = 0.70
-    v_depth: float = 0.18
-    v_position: float = 0.84
-    v_width: float = 0.08
-    lip_thickness: float = 0.065
+    v_depth: float = 0.11
+    v_position: float = 0.88
+    v_width: float = 0.045
+    lip_thickness: float = 0.016
 
 
 NEUTRAL = dict(opening=0.0, rounding=0.0, spread=0.0, seal=1.0,
@@ -68,6 +68,8 @@ class Animator:
         self.style = style or Style()
         self.controls = dict(NEUTRAL)
         self.last_time: float | None = None
+        self.last_raw = dict(NEUTRAL)
+        self.derivative = {k: 0.0 for k in NEUTRAL}
 
     def step(self, target: dict[str, float], now: float, tracked: bool = True) -> dict:
         if not math.isfinite(now) or (self.last_time is not None and now < self.last_time):
@@ -77,9 +79,15 @@ class Animator:
         clean = pose_from_controls(target, self.style)  # validate before modifying state
         for k, old in self.controls.items():
             value = clean[k] if tracked else NEUTRAL[k]
-            tau = 0.022 if k in ("opening", "rounding", "spread", "seal") else 0.055
-            if not tracked:
-                tau = 0.14
+            # Speed-adaptive low pass: stable rest, faster deliberate articulation.
+            # No prediction or overshoot. Derivative is itself filtered at 1 Hz.
+            if dt > 0:
+                speed = (value - self.last_raw[k]) / dt
+                self.derivative[k] += (speed-self.derivative[k]) * (1-math.exp(-dt*2*math.pi))
+            self.last_raw[k] = value
+            mouth = k in ("opening", "rounding", "spread", "seal")
+            cutoff = (5.0 if mouth else 2.8) + (.7 if mouth else .3)*abs(self.derivative[k])
+            tau = 1/(2*math.pi*cutoff) if tracked else .14
             self.controls[k] += (value - old) * (1 - math.exp(-dt / tau))
         if tracked and clean["seal"] >= 0.98:
             # Contact priority prevents filtering or smile correctives leaking a gap.
@@ -87,17 +95,48 @@ class Animator:
         return pose_from_controls(self.controls, self.style)
 
 
+def _monotone_value(times: list[float], values: list[float], t: float) -> float:
+    """Shape-preserving Hermite interpolation; neighboring poses flow without overshoot."""
+    import bisect
+    index = min(len(times)-2, max(0, bisect.bisect_right(times, t)-1))
+    spans = [times[i+1]-times[i] for i in range(len(times)-1)]
+    slopes = [(values[i+1]-values[i])/spans[i] for i in range(len(spans))]
+    tangents = [0.0]*len(times)
+    for i in range(1,len(times)-1):
+        a,b=slopes[i-1],slopes[i]
+        if a*b>0:
+            w1,w2=2*spans[i]+spans[i-1],spans[i]+2*spans[i-1]
+            tangents[i]=(w1+w2)/(w1/a+w2/b)
+    h=spans[index];u=clamp((t-times[index])/h)
+    value=(2*u**3-3*u*u+1)*values[index]+(u**3-2*u*u+u)*h*tangents[index]
+    value+=(-2*u**3+3*u*u)*values[index+1]+(u**3-u*u)*h*tangents[index+1]
+    return clamp(value,min(values[index:index+2]),max(values[index:index+2]))
+
+
+# Authored synthetic phrase. Values are opening/rounding/spreading/contact.
+# Contact and preparation have their own timing; this is not audio-derived speech.
+_BEATS = (
+    (0.0, 0,0,0,1),(.55,0,0,0,1),(.72,.06,.4,0,1),(.86,.36,.55,0,0),
+    (1.08,.58,.1,.25,0),(1.25,.20,0,.5,0),(1.38,.12,.4,0,1),
+    (1.48,.12,.65,0,1),(1.65,.44,.95,0,0),(1.9,.32,.9,0,0),
+    (2.10,.48,.1,.4,0),(2.3,.18,0,.15,0),(2.46,.08,0,0,1),
+    (2.75,.08,0,0,1),(2.9,.35,.3,0,0),(3.14,.72,.1,.2,0),
+    (3.38,.3,.1,.35,0),(3.56,.12,0,0,1),(3.75,.12,0,0,1),
+    (4.02,.46,.7,0,0),(4.23,.33,.3,.2,0),(4.5,.12,.1,0,0),
+    (4.78,0,0,0,1),(5.4,0,0,0,1),(6.0,0,0,0,1),
+)
+
+
 def demo_controls(seconds: float) -> tuple[dict, str]:
-    """Synthetic articulation demonstration, not a phoneme recognizer or recorded speech."""
-    scenes = (
-        ("Rest / contact", dict()),
-        ("Conversational opening", dict(opening=.5, seal=0)),
-        ("Rounded opening — inferred proxy", dict(opening=.55, rounding=.9, seal=0)),
-        ("Smile while speaking", dict(opening=.48, spread=.4, corner_left=.8, corner_right=.8, seal=0)),
-        ("Closed smile / contact wins", dict(opening=.6, corner_left=.8, corner_right=.8, seal=1)),
-        ("Asymmetric restrained opening", dict(opening=.35, corner_left=.85, corner_right=.1, seal=0)),
-        ("Emphatic opening / recession", dict(opening=.95, tension=.6, seal=0)),
-    )
-    label, values = scenes[int(seconds / 2.5) % len(scenes)]
-    return {**NEUTRAL, **values}, label
+    t=seconds%6.0
+    times=[b[0] for b in _BEATS]
+    controls=dict(NEUTRAL)
+    for index,key in enumerate(("opening","rounding","spread","seal"),start=1):
+        controls[key]=_monotone_value(times,[b[index] for b in _BEATS],t)
+    # Expression persists over several syllables instead of changing on each vowel.
+    expression=0.24+0.12*math.sin(seconds*.55)
+    controls["corner_left"]=expression
+    controls["corner_right"]=expression*.82
+    label="Synthetic phrase · overlapping articulation" if .6<t<4.8 else "Phrase rest · expression persists"
+    return controls,label
 

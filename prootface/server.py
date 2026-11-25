@@ -96,8 +96,8 @@ class Application:
                     "max_jaw_angle": (.1, .65), "recession": (0, .35),
                     "opening_gamma": (.6, 2), "max_corner_lift": (0, .35),
                     "asymmetry": (0, 1), "v_depth": (.02, .30),
-                    "v_position": (.65, .9), "v_width": (.04, .15),
-                    "lip_thickness": (.02, .12),
+                    "v_position": (.65, .92), "v_width": (.02, .10),
+                    "lip_thickness": (.005, .04),
                 }
                 proposed = asdict(self.animator.style)
                 for k, v in data.items():

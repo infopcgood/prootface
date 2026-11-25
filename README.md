@@ -2,11 +2,17 @@
 
 The character model downstream of OpenSeeFace for a wearable protogen head.
 
-The target is a **natural, dimensional mouth** with controlled lip contact,
+The target is a **naturally animated mouth** with controlled lip contact,
 lower-jaw recession and expression-preserving articulation. It is inspired by
 the design principles discussed by Zootopia's animators, not a copy of Nick's
 character or mesh. There is **no tongue or tooth row**. One V-shaped point is
 integrated into the posterior/eye-side lip contour of each side.
+
+**Latest visual direction:** use Triwave's protogen as the mouth-shape reference,
+while building richer articulation than its limited VRChat animation. The user
+explicitly rejected the first thick metallic lip-strip render. That appearance
+has been removed. Current clean contours are provisional, not an accepted
+replacement or a copy/extraction of Triwave's mesh.
 
 The physical reference is **Coela Can't's Sigma WS35 layout**, adapted to a
 denser LED panel. The current WS35 silhouette is a schematic placement study;
@@ -44,7 +50,7 @@ are not written by default.
 
 - Verified OpenSeeFace binary packet decoding and signed feature mapping.
 - Robust wearer normalization, contact-aware retargeting and time-based easing.
-- A shaded procedural profile-surface model, independent of display density.
+- A clean profile-contour model with a recessed cavity, independent of display density.
 - A receding lower lip/jaw arc and one attached rear V point per side.
 - Persistent corner lift during articulation; closure wins over opening.
 - A dual-view WebGL study with a schematic WS35 mask and density preview.

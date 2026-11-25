@@ -32,10 +32,18 @@
 
 ## Sigma reference update
 - Creator repository: coelacant1/Protogen-3D-Prints, SigmaProtogen/.
-- Pictures/HUB75.png shows two canted flat panels behind a curved visor, with a central non-emissive nose gap.
+- Pictures/WS35.png is the selected layout reference: two shaped planar boards behind a curved visor, with a central non-emissive nose gap. HUB75.png describes another variant and must not set this project's panel shape.
 - Keep physical panel placement separate from virtual mouth camera yaw. Do not infer exact mounting angles from pictures or print-oriented STLs.
 
 
 ## Latest integration boundary
 - User asked to prioritize natural animation and leave transport/hardware technicalities until later.
 - Existing pipeline lives in infopcgood/proto-ros2; consult its current files before integrating. Keep this first character model independently previewable and document its future insertion point. Do not modify proto-ros2 without a task requiring that work.
+
+## Critical visual rejection / latest reference
+- User rejected the first rendered sample as terrifying. The thick metallic/ribbed lip strips and severe floating eye shapes are NOT accepted and must not become the target design.
+- Stop equating natural Nick-like movement with literal detached sculpted human lips. User now explicitly requests Triwave's protogen model as the mouth-shape reference. Inspect original/public model previews before rebuilding the appearance.
+- Preserve the constraints: Sigma WS35 placement with denser LEDs; OpenSeeFace measurement; no tongue or tooth rows; one small attached posterior V point per side.
+- Do not declare naturalness achieved based on code tests or synthetic renders. Get a visually acceptable shape direction first.
+- Latest clarification: Triwave's mouth SHAPE is the reference. Its limited animation for light VRChat use is not the motion target. Keep the static contour design separate from the richer live articulation rules; do not reduce this project to the reference avatar's limited animation set.
+- The Triwave mesh has not been obtained or inspected locally. Public creator pages/previews were located, but precise contour coordinates and rig details are unverified. Do not invent an extracted or matched shape.
