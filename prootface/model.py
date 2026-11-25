@@ -11,7 +11,7 @@ from .timing import FRAME_SECONDS
 class Style:
     max_jaw_angle: float = 0.36
     recession: float = 0.12
-    opening_gamma: float = 0.85
+    opening_gamma: float = 1.0
     max_corner_lift: float = 0.20
     asymmetry: float = 0.70
     v_depth: float = 0.11
@@ -19,7 +19,7 @@ class Style:
     v_width: float = 0.045
     lip_thickness: float = 0.016
     pose_contrast: float = 2.5
-    opening_contrast: float = 2.4
+    opening_contrast: float = 3.2
     key_pose_strength: float = 0.95
     accent_gain: float = 0.45
     front_motion_scale: float = 0.8

@@ -8,6 +8,18 @@ rate is **24 fps**. The user explicitly reiterated: this must work in REAL TIME.
 No tongue or tooth rows. Preserve the selected visual identity and keep source
 assets and inspection details private. Hardware/ROS work remains secondary.
 
+## Latest modest drama increase
+
+The user requested a little more drama in the real-video result. Opening
+contrast is now 3.2 (previously 2.4), with gamma 1.0 (previously .85). This
+tightens quiet/intervening shapes while retaining existing full accent hits,
+contact timing, authored bounds and .8 anterior motion. The same 144 actual
+OpenSeeFace frames and the identical frozen earlier-section profile are replayed
+for comparison. On this clip the mean absolute frame-to-frame primary opening
+change increases from .130 to .152; peak exposure remains similar. This is a
+controller measurement, not a perceptual quality score or a device benchmark.
+Existing verification remains 37 Python and 14 Node tests.
+
 ## Real-video milestone and anterior refinement
 
 The user requested internet footage through actual OpenSeeFace. A reproducible
@@ -37,7 +49,7 @@ New verification totals: 37 Python tests and 14 Node tests passed. Added checks
 cover tracker packet serialization, future-independent replay, stale tracking,
 approximate calibration labeling and local geometry restraint.
 
-## Latest performance revision
+## Earlier performance revision
 
 The user found the prior 24 fps pass still insufficiently dramatic. The old
 opening ease-out lifted quiet movement close to the accents. It was replaced

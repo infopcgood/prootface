@@ -84,6 +84,11 @@
 
 ## Latest review and real-video testing
 
+- Latest real-video review asks for a little more drama. Defaults are now
+  opening contrast 3.2 and gamma 1.0: tighten the in-betweens, keep strong hits,
+  contact timing and the restrained front edge. Compare identical real packets
+  and the same frozen profile rather than changing calibration to improve a clip.
+
 - User prefers the stronger performance but wants less spreading at image-left
   (the anterior lip edge). Default front motion is now .8, fading smoothly to
   full authored motion over the anterior third. Preserve rest and expression.

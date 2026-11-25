@@ -43,7 +43,7 @@ Opening strength maps it to a bounded authored response:
 
 `s = clamp(opening^gamma * opening_strength / .36)`
 
-`base = s^q / (s^q + (1-s)^q)`, with `q = 2.4`
+`base = s^q / (s^q + (1-s)^q)`, with `q = 3.2`
 
 `a = clamp(base + opening_accent) * (1 - seal)`
 
@@ -51,7 +51,9 @@ This expands the range around its middle: small movements stay small and
 large movements approach the authored extreme. It preserves exact closed/full
 endpoints. The older ease-out boosted almost every opening and flattened the
 contrast between intervening shapes and accents. The input feature is not a physical
-percentage of a mesh's jaw travel. Default gamma is .85.
+percentage of a mesh's jaw travel. Default gamma is 1.0. The latest modest
+drama increase tightens the intervening shapes while retaining existing peak
+accents, contact timing and anterior restraint. Calibration stays unchanged.
 
 Normalize rounding and spread by `max(1, rounding + spread)`. Apply the 2.5
 contrast power to the resulting three-family vector, renormalize, then apply
