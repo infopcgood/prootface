@@ -2,8 +2,9 @@
 
 Implementation:
 [proto-ros2/prootface_pkg](https://github.com/infopcgood/proto-ros2/tree/master/src/prootface_pkg).
-The existing shared receiver and dispatcher retain their roles. The new launch
-uses Prootface instead of the named-PNG face renderer; legacy launch stays intact.
+All pre-existing ROS packages retain their pre-integration contents. Prootface
+input, preview and atlas-output adapters live in the new prootface_pkg. The
+existing dispatcher and interface definitions are consumed without edits.
 
 ## Input
 
@@ -13,9 +14,11 @@ values and derives inner-lip aperture from original 2D points. Common validation
 with UDP input prevents transport-specific changes to calibration or contact.
 Sender time is metadata; freshness uses local monotonic receipt time.
 
-No second UDP receiver is started by the ROS node. The existing OSF receiver
-accepts complete datagrams, including multiple faces. One configured face ID
-feeds the calibrated controller; the rest are ignored by that controller.
+The face node does not open a UDP socket. Launch can start a separate optional
+input adapter owned by prootface_pkg, supporting complete multi-face datagrams.
+When an existing OSFData publisher is present, disable that optional adapter;
+the original receiver package is unchanged. One configured face ID feeds the
+controller; other faces are ignored by that controller.
 
 ## Control and calibration
 
@@ -54,8 +57,8 @@ producer. The current dispatcher is a selected-sender gate, not a timed lease.
 
 ## Outputs
 
-The OpenCV backend can display the atlas using matching global display dimensions.
-The new WS atlas backend consumes an explicit map with per-side pixel positions,
+The package-owned OpenCV preview uses its own expected atlas dimensions.
+The package-owned WS atlas backend consumes an explicit map with per-side pixel positions,
 physical strip/LED order and unused slots. It converts BGR to RGB exactly once.
 It validates map dimensions and driver strip count, rejects extra mirroring and
 clears stale output. No physical map can be generated from virtual frame dimensions.
@@ -63,3 +66,7 @@ The existing single-image WS/HUB75 backends remain separate legacy entry points.
 
 See the ROS package README for its launch configuration, dependencies, map schema
 and test commands. Device validation remains distinct from desktop/CI execution.
+
+Existing ROS packages must not be modified except to add parameters in
+param_server_pkg or new interface definitions in interface_pkg. Prootface
+adapters, tests and dependencies belong in its own new package.

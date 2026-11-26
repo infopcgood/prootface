@@ -9,7 +9,8 @@
 - ROS node, startup screen-control request, 24 Hz controller and 24/12/6 fps output.
 - Existing Image transport carrying synchronized, independently projected sides.
 - Atlas-aware WS backend with explicit coordinate mapping and RGB conversion.
-- Shared receiver datagram validation, multi-face support and clean shutdown.
+- Optional package-owned input adapter: datagram validation, multi-face support
+  and clean shutdown; existing receiver code remains unchanged.
 - Explicit ROS launch configuration; legacy renderer/backends remain available.
 
 ## Validation checkpoint
@@ -18,7 +19,8 @@ Local core suite: 65 tests passed. Pure LED-map suite: 3 tests passed. Package
 wheel creation succeeded and includes only the public Python package. EGL tests
 exercise original synthetic geometry, side selection, one mirror, depth and BGR.
 
-ROS Jazzy build completed for all seven selected integration packages. The real
+The initial ROS Jazzy build covered seven packages; the isolated integration
+now builds only the unchanged interface/dispatcher packages and prootface_pkg. The real
 runtime suite passed UDP/message conversion, EGL rendering, calibration HTTP and
 profile saving, dispatcher ownership, driver-byte output and an installed-launch
 smoke test. It uses original synthetic geometry and a recording hardware driver.
@@ -39,3 +41,11 @@ required for physical WS output. No physical coordinates are inferred or bundled
 CM4 performance, Hailo deployment, wearer tracking and LED output still require
 on-device validation. Software Mesa and synthetic-driver tests do not establish
 those results. Private continuity and asset details are not part of public docs.
+
+## Existing-package boundary
+
+The ROS integration restores all pre-existing package trees to their revision
+before Prootface work. Its optional input, preview, atlas modules and associated
+tests now live in prootface_pkg. The only permitted future changes to existing
+packages are adding parameters in param_server_pkg or adding new interface
+definitions in interface_pkg. Existing behavior and definitions remain intact.

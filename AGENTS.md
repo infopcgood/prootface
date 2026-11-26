@@ -16,7 +16,7 @@
 - Preserve original landmark indices when refining imported geometry. Deformation
   boundaries must not move stationary features through coarse masking triangles.
   Validate sparse blending and side/depth behavior in native and offscreen paths.
-- ROS integration lives in infopcgood/proto-ros2. Use its shared OSF receiver,
+- ROS integration lives in infopcgood/proto-ros2. Consume its OSFData topic,
   screen ownership and interface messages. The standalone server must not bind
   UDP when the ROS receiver owns the port. Calibration HTTP hosts shared state.
 - EGL contexts belong to the render worker thread. Keep one latest pending pose
@@ -29,3 +29,7 @@
   installed driver and use actual panel coordinates. Legacy backends remain usable.
 - Publish with an expected branch SHA, inspect concurrent changes and never
   force-push over another change. No private assets enter public CI artifacts.
+
+- User boundary: leave existing ROS packages unchanged except for adding
+  parameters in param_server_pkg or new definitions in interface_pkg. Keep all
+  Prootface input/output adapters, tests and dependencies in prootface_pkg.
