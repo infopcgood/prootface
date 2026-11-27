@@ -55,6 +55,13 @@ schema-2 mesh, original UVs, sparse targets, depth and separate side projections
 It requires neither Blender nor a browser. Mesa may choose a software renderer;
 its availability does not establish performance on another device.
 
+## External expression selection
+
+[Expression-specific speech](docs/EXPRESSIONS.md) adds externally selected
+neutral/happy/angry/sad/unamused banks, independent eye/mouth channels and smooth
+transitions while the existing speech controller continues. Recompiled private
+characters are required for non-neutral banks.
+
 ## ROS integration
 
 The implementation is in

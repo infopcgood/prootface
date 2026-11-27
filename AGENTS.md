@@ -33,3 +33,7 @@
 - User boundary: leave existing ROS packages unchanged except for adding
   parameters in param_server_pkg or new definitions in interface_pkg. Keep all
   Prootface input/output adapters, tests and dependencies in prootface_pkg.
+
+- Expression selection comes from external commands/buttons. Keep the speech
+  controller independent, use expression-specific speech banks, preserve full
+  contact and blinks, and keep expression selections during tracking loss.

@@ -11,6 +11,7 @@ import time
 from urllib.parse import urlsplit
 
 from .calibration import CalibrationSession, Profile
+from .expressions import ExpressionController, ExpressionRig
 from .model import Animator, NEUTRAL, Style, demo_controls, pose_from_controls, retarget
 from .openseeface import decode_packet
 from .timing import ANIMATION_FPS, FRAME_SECONDS
@@ -40,6 +41,22 @@ class Application:
         self.snapshot = {}
         self.measurement_contact = True
         self.contact_pending = False
+        self.expression_rig = ExpressionRig()
+        self.expressions = ExpressionController(self.expression_rig.available)
+
+    def configure_character(self, character):
+        """Configure available expression banks before the first animation tick."""
+        rig = ExpressionRig(character)
+        with self.lock:
+            if self.sequence:
+                raise ValueError('Configure the character before animation starts')
+            self.expression_rig = rig
+            self.expressions = ExpressionController(rig.available)
+
+    def select_expression(self, name, now=None, *, part='face', hold=0., transition=.2):
+        with self.lock:
+            self.expressions.select(name, time.monotonic() if now is None else now,
+                                    part=part, hold=hold, transition=transition)
 
     def receive(self, packet: bytes, now: float):
         try:
@@ -70,6 +87,7 @@ class Application:
 
     def tick(self, now: float):
         with self.lock:
+            self.expressions._time(now)
             age = now - self.latest.received_at if self.latest else None
             fresh = age is not None and 0 <= age <= TRACKING_TIMEOUT
             if not fresh:
@@ -88,6 +106,8 @@ class Application:
                     self.contact_pending = False
                 active = fresh
             pose = self.animator.step(target, now, active)
+            expression_weights = self.expressions.sample(now)
+            pose = self.expression_rig.compose(pose, expression_weights)
             self.sequence += 1
             self.snapshot = dict(
                 sequence=self.sequence, mode=self.mode, label=label, pose=pose,animation_fps=ANIMATION_FPS,
@@ -96,16 +116,21 @@ class Application:
                 calibration=self.session.status(), received=self.received, rejected=self.rejected,
                 raw=self.latest.signals() if self.latest else None,
                 aperture_ratio=self.latest.aperture_ratio if self.latest else None,
+                expression=self.expressions.status(expression_weights),
                 limitations=["rounding is a narrowing proxy", "seal is inferred from lip aperture",
                              "specialized consonant channels are not inferred from OpenSeeFace"],
             )
 
-    def command(self, path: str, data: dict):
+    def command(self, path: str, data: dict, *, now=None):
         """Apply one validated command; invalid commands leave state unchanged."""
         if not isinstance(data, dict):
             raise ValueError("Expected command object")
         with self.lock:
-            if path == "/api/control":
+            if path == "/api/expression":
+                self.expressions.select(data.get('expression'), time.monotonic() if now is None else now,
+                    part=data.get('part', 'face'), hold=data.get('hold', 0.),
+                    transition=data.get('transition', .2))
+            elif path == "/api/control":
                 mode = data.get("mode", self.mode)
                 if mode not in ("manual", "live", "demo"):
                     raise ValueError("Unknown mode")
@@ -238,6 +263,9 @@ def start_http(app, host, port, character_path):
 
 def serve(args):
     app = Application(Path(args.profile), args.face_id)
+    character_path = Path(getattr(args, 'character', 'local/character.json'))
+    if character_path.is_file():
+        app.configure_character(json.loads(character_path.read_text()))
     udp = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     udp.bind((args.udp_host, args.udp_port))
     udp.settimeout(0.2)
@@ -254,8 +282,9 @@ def serve(args):
 
     def animate_loop():
         while not app.stop.is_set():
-            start = time.monotonic()
-            app.tick(start)
+            with app.lock:
+                start = time.monotonic()
+                app.tick(start)
             app.stop.wait(max(0.001, FRAME_SECONDS - (time.monotonic() - start)))
 
     server = make_http_server(app, args.host, args.port, getattr(args, 'character', 'local/character.json'))

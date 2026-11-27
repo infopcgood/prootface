@@ -49,9 +49,10 @@ $('#stop-capture').onclick=()=>post('/api/calibration/stop');$('#save-calibratio
 
 const events=new EventSource('/api/events');
 events.onmessage=e=>{
- const next=JSON.parse(e.data);if(next.sequence<=lastSequence)return;lastSequence=next.sequence;state=next;
+ const next=JSON.parse(e.data);if(!next.pose||next.sequence<=lastSequence)return;lastSequence=next.sequence;state=next;
  $('#connection').textContent=next.mode==='live'?(next.tracking?'● Live tracking':'○ Waiting for tracker'):'● Preview connected';
- $('#scene').textContent=next.label;$('#status').textContent=next.mode==='live'?(next.age_ms===null?'No frame':`${next.age_ms} ms since input`):'Shared pose · independent corners';
+ const expression=next.expression?.parts;
+ $('#scene').textContent=expression?`${expression.mouth.selected} / ${expression.eyes.selected} · ${next.label}`:next.label;$('#status').textContent=next.mode==='live'?(next.age_ms===null?'No frame':`${next.age_ms} ms since input`):'Shared pose · independent corners';
  $('#calibrated').textContent=next.calibrated?'Wearer profile loaded':'Default ranges';
  const cal=next.calibration;$('#calibration-status').textContent=`${cal.stage?'Capturing '+cal.stage+' · ':''}${Object.entries(cal.counts).map(([k,v])=>`${k}: ${v}`).join(' / ')}`;
  document.querySelectorAll('[data-mode]').forEach(b=>b.classList.toggle('selected',b.dataset.mode===next.mode));

@@ -15,7 +15,7 @@
 
 ## Validation checkpoint
 
-Local core suite: 65 tests passed. Pure LED-map suite: 3 tests passed. Package
+Local core suite: 76 tests passed. Pure LED-map suite: 3 tests passed. Package
 wheel creation succeeded and includes only the public Python package. EGL tests
 exercise original synthetic geometry, side selection, one mirror, depth and BGR.
 
@@ -49,3 +49,13 @@ before Prootface work. Its optional input, preview, atlas modules and associated
 tests now live in prootface_pkg. The only permitted future changes to existing
 packages are adding parameters in param_server_pkg or adding new interface
 definitions in interface_pkg. Existing behavior and definitions remain intact.
+
+## Externally selected expressions
+
+Implemented expression-specific closed/open/wide/round banks, independent eye
+and mouth selection, 24 Hz preset transitions, latched external commands and
+optional timed returns. Both generic renderers consume the same sparse context
+weights. New tests cover bank reconstruction, front restraint, contact, blinks,
+interruption, persistence, invalid commands and HTTP selection. Non-neutral
+expressions require a newly compiled private character; geometry and source
+mappings are not distributed by this public repository.

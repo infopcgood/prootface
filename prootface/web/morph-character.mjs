@@ -17,6 +17,7 @@ function frontWeights(character){
 function prepare(character){
  if(cached.has(character))return cached.get(character);
  const value={base:new Float32Array(character.positions),uv:new Float32Array(character.uvs),front:frontWeights(character),
+  frontTargets:new Set([...frontTargets,...(character.front_targets??[])]),
   targets:Object.fromEntries(Object.entries(character.targets).map(([name,t])=>[name,
    {indices:new Uint32Array(t.indices),deltas:new Float32Array(t.deltas)}]))};
  cached.set(character,value);return value;
@@ -30,7 +31,7 @@ export function blendVertices(character,pose){
   if(weight<1e-7)continue;
   for(let j=0;j<target.indices.length;j++){
    const i=target.indices[j]*3;
-   const local=frontTargets.has(name)?1-(1-frontScale)*data.front[target.indices[j]]:1;
+   const local=data.frontTargets.has(name)?1-(1-frontScale)*data.front[target.indices[j]]:1;
    positions[i]+=weight*local*target.deltas[j*3];
    positions[i+1]+=weight*local*target.deltas[j*3+1];
    positions[i+2]+=weight*local*target.deltas[j*3+2];

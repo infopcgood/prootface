@@ -30,8 +30,8 @@ used. Input callbacks latch brief contacts, including between presentation ticks
 Presentation rate can be 24, 12 or 6 fps without retiming the controller. A
 render worker owns EGL and coalesces pending poses. At most one pending pose
 and one completed frame are retained; stale completed frames are discarded.
-UI/manual/demo commands operate on this same state. The legacy categorical
-FacialExpression topic is not an automatic continuous articulation source.
+UI/manual/demo commands operate on this same state. The existing FacialExpression topic selects expression banks through external
+commands; it is not a source of continuous speech articulation.
 
 ## Rendering and transport
 
@@ -70,3 +70,7 @@ and test commands. Device validation remains distinct from desktop/CI execution.
 Existing ROS packages must not be modified except to add parameters in
 param_server_pkg or new interface definitions in interface_pkg. Prootface
 adapters, tests and dependencies belong in its own new package.
+
+Expression commands use the existing message definition. All subscriptions,
+configuration and adapters are confined to prootface_pkg. See
+[EXPRESSIONS.md](EXPRESSIONS.md) for bank composition and trigger semantics.

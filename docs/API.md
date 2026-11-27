@@ -155,6 +155,7 @@ loopback for local use. Browser commands must have a matching Origin host.
 | `GET /api/character` | Compiled character JSON, or `null` if absent |
 | `GET /api/character-texture` | PNG sidecar; 404 if absent |
 | `POST /api/control` | `{"mode":"live"}` or `{"mode":"manual","controls":{"opening":0.8,"seal":0}}`; `mode` and partial `controls` are optional. Modes: `demo`, `manual`, `live`. |
+| `POST /api/expression` | `{"expression":"angry"}`; optional part (`face`, `mouth`, `eyes`), hold (0–3600 seconds), transition (0–2 seconds, default 0.2). Zero hold latches until replaced. |
 | `POST /api/style` | Partial style object, e.g. `{"opening_contrast":3.2,"rounding_reach":1}`. Applies in memory; does not write a style file. |
 | `POST /api/calibration/start` | `{"stage":"neutral"}`; resets that stage, switches to live |
 | `POST /api/calibration/stop` | `{}`; pauses capture |
@@ -216,3 +217,32 @@ character options. Defaults: HTTP 127.0.0.1:8080, UDP 127.0.0.1:11573,
 The separate ROS package uses this API rather than launching another UDP server.
 Its [ROS API reference](https://github.com/infopcgood/proto-ros2/blob/master/src/prootface_pkg/API.md)
 defines topics, control service, startup parameters, atlas transport and LED maps.
+
+## Expression APIs
+
+`prootface.expressions.ExpressionController(available=EXPRESSIONS)` owns mouth
+and eye selections. `select(name, now, part='face', hold=0, transition=0.2)` uses
+keyword-only options. `sample(now)` returns convex weights per channel; times
+must be finite and nondecreasing. `status(weights)` reports available names,
+selected/latched names, monotonic expiry and current weights. Duplicate commands
+do not restart fades or extend holds.
+
+`ExpressionRig(character)` validates schema-2 expression_sets target references.
+Its available property always includes neutral. `compose(pose, weights)` adds
+bank corrections to an ordinary Animator pose; use weights from a controller
+configured with that rig's available names. The result remains a flat numeric
+pose, consumable by existing EGL/WebGL sparse blending.
+
+`Application.configure_character(character)` configures bank availability before
+the first tick. The standalone CLI and ROS node do this automatically.
+`Application.select_expression(name, now=None, *, part='face', hold=0,
+transition=0.2)` is the external-event Python entry point. Omitting now samples
+monotonic time while holding the application lock. command also accepts a
+keyword-only now for deterministic expression-command replays. Callers running
+live ticks must acquire app.lock before reading the tick's monotonic timestamp,
+so concurrent button events cannot precede an older captured tick time.
+
+Snapshots add expression, containing available and parts (mouth/eyes). Explicit
+selection persists during tracking loss, with speech relaxing to the closed
+expression. Unknown or uncompiled banks return HTTP 400. See
+[EXPRESSIONS.md](EXPRESSIONS.md) for compilation, contact and compatibility rules.

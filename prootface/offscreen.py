@@ -17,6 +17,7 @@ import numpy as np
 from PIL import Image
 
 from .rig import FRONT_TARGETS, front_motion_weights
+from .expressions import ExpressionRig
 
 I=C.c_int; U=C.c_uint; F=C.c_float; P=C.c_void_p
 
@@ -63,6 +64,10 @@ class CompiledMesh:
                     or not np.isfinite(deltas).all()):
                 raise ValueError('Invalid sparse target')
             self.targets[name]=(indices,deltas)
+        self.expression_rig = ExpressionRig(character)
+        self.front_targets = FRONT_TARGETS | frozenset(character.get('front_targets', []))
+        if not self.front_targets.issubset(set(self.targets) | FRONT_TARGETS):
+            raise ValueError('Unknown front-scaled target')
         front = character.get('front_weights')
         if front is None:
             front = front_motion_weights(character)
@@ -95,7 +100,7 @@ class CompiledMesh:
             if not math.isfinite(weight):raise ValueError('Non-finite target weight')
             weight=max(0,min(1,weight))
             if weight<1e-7:continue
-            gain=1-(1-front)*self.front[indices] if name in FRONT_TARGETS else np.ones(len(indices),dtype=np.float32)
+            gain=1-(1-front)*self.front[indices] if name in self.front_targets else np.ones(len(indices),dtype=np.float32)
             output[indices]+=weight*deltas*gain[:,None]
         return output
 

@@ -39,3 +39,13 @@ test('front restraint follows authored motion locally and preserves rear and exp
  assert.deepEqual(blendVertices(shape,{blend_smile_left:1,front_motion_scale:0}),
                   blendVertices(shape,{blend_smile_left:1,front_motion_scale:1}));
 });
+
+test('expression context targets obey the same anterior restraint as speech',()=>{
+ const shape={positions:[0,0,0,1,0,0],uvs:[0,0,0,0],parts:[],front_weights:[1,0],
+  front_targets:['expr_angry_open'],targets:{
+   expr_angry_open:{indices:[0,1],deltas:[0,-1,0,0,-1,0]},
+   expr_angry_rest:{indices:[0,1],deltas:[0,.2,0,0,.2,0]}}};
+ const result=blendVertices(shape,{blend_expr_angry_open:1,blend_expr_angry_rest:1,front_motion_scale:.25});
+ assert(Math.abs(result[1]+.05)<1e-6);
+ assert(Math.abs(result[4]+.8)<1e-6);
+});
