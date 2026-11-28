@@ -1,7 +1,8 @@
 """Offline construction of expression-specific speech endpoints and correctives.
 
 Settings supply artistic choices. No source-asset mappings or geometry are built
-into this module. Rest plus a context correction reconstructs each full endpoint.
+into this module. Rest plus a shape correction reconstructs authored expression;
+optional articulation corrections independently receive front motion restraint.
 """
 import math
 
@@ -53,7 +54,8 @@ def compile_expression_sets(character, definitions):
         if not all(math.isfinite(v) and abs(v) <= .5 for v in (bend, slope)):
             raise ValueError('Expression curvature exceeds bounds')
         speech = basis.get(phase, zeros)
-        result = [[delta[k]*scales[k] for k in range(3)] for delta in speech]
+        motion = [[delta[k]*(scales[k]-1) for k in range(3)] for delta in speech]
+        result = [[0., 0., 0.] for _ in range(count)]
         for source, weight in specification.get('sources', {}).items():
             if not math.isfinite(weight) or not -1 <= weight <= 1:
                 raise ValueError('Expression source weight outside [-1,1]')
@@ -67,7 +69,7 @@ def compile_expression_sets(character, definitions):
                         * _smooth(t/.3) * (1-_smooth((t-1)/.15)))
             u = min(1., max(0., t))
             delta[1] += height * envelope * (bend*4*u*(1-u) + slope*u)
-        return result
+        return result, motion
 
     def sparse(values):
         indices, deltas = [], []
@@ -83,19 +85,29 @@ def compile_expression_sets(character, definitions):
         if name not in EXPRESSIONS[1:]:
             raise ValueError('Unsupported expression: ' + name)
         mouth = definition['mouth']
-        rest = endpoint(mouth['rest'], 'rest')
+        if not any(weight != 0 for spec in mouth.values()
+                   for weight in spec.get('sources', {}).values()):
+            raise ValueError('Expression bank requires an authored mouth source: ' + name)
+        rest, _ = endpoint(mouth['rest'], 'rest')
         bank = {}
         rest_name = 'expr_' + name + '_rest'
         targets[rest_name] = sparse(rest)
         bank['rest'] = rest_name
         for phase in PHASES:
-            full = endpoint(mouth[phase], phase)
-            correction = [[full[i][k]-basis[phase][i][k]-rest[i][k]
+            shape, motion = endpoint(mouth[phase], phase)
+            correction = [[shape[i][k]-rest[i][k]
                            for k in range(3)] for i in range(count)]
             target_name = 'expr_' + name + '_' + phase
             targets[target_name] = sparse(correction)
-            front_targets.add(target_name)
+            # Emotion is a shape change, independent of anterior speech restraint.
+            # Scaling its rest cancellation would leave a residual smile/frown.
+            front_targets.discard(target_name)
             bank[phase] = target_name
+            if any(any(delta) for delta in motion):
+                motion_name = target_name + '_motion'
+                targets[motion_name] = sparse(motion)
+                front_targets.add(motion_name)
+                bank[phase + '_motion'] = motion_name
         for side in ('left', 'right'):
             target_name = definition['eyes'][side]
             if target_name not in targets:

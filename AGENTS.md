@@ -37,3 +37,7 @@
 - Expression selection comes from external commands/buttons. Keep the speech
   controller independent, use expression-specific speech banks, preserve full
   contact and blinks, and keep expression selections during tracking loss.
+- Anchor expression banks in authored mouth targets. Do not replace their
+  identity with curve-only fields to hide blending artifacts. Review mouths
+  with neutral eyes and compare rest endpoints to the authored references.
+  Keep emotion corrections independent of anterior articulation restraint.

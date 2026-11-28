@@ -112,6 +112,10 @@ class ExpressionRig:
                 target = bank.get(channel)
                 if not isinstance(target, str) or target not in targets:
                     raise ValueError(f'Missing expression target: {name}/{channel}')
+            for phase in PHASES:
+                channel = phase + '_motion'
+                if channel in bank and (not isinstance(bank[channel], str) or bank[channel] not in targets):
+                    raise ValueError(f'Missing expression target: {name}/{channel}')
         self.available = ('neutral', *(name for name in EXPRESSIONS[1:] if name in self.banks))
 
     def compose(self, pose, weights):
@@ -129,7 +133,10 @@ class ExpressionRig:
             mouth = weights['mouth'][name]
             add(bank['rest'], mouth)
             for phase in PHASES:
-                add(bank[phase], mouth * pose.get('blend_' + phase, 0.))
+                weight = mouth * pose.get('blend_' + phase, 0.)
+                add(bank[phase], weight)
+                if phase + '_motion' in bank:
+                    add(bank[phase + '_motion'], weight)
             for side in ('left', 'right'):
                 # Full blinks retain their clean endpoint in every expression.
                 openness = 1 - pose.get('blend_blink_' + side, 0.)

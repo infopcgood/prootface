@@ -22,6 +22,8 @@ def main():
     parser.add_argument('--character', type=Path, required=True)
     parser.add_argument('--poses', type=Path, required=True, help='Flat 24 Hz Animator pose list')
     parser.add_argument('--audio', type=Path, help='Optional aligned audio or video clip, looped')
+    parser.add_argument('--comparison-part', choices=('mouth','face'), default='mouth',
+                        help='Keep eyes neutral during the comparison by default')
     parser.add_argument('--output', type=Path, default=Path('local/expression-review'))
     args = parser.parse_args()
     args.output.mkdir(parents=True, exist_ok=True)
@@ -41,7 +43,7 @@ def main():
     controllers = {}
     for name in names:
         controller = ExpressionController(names)
-        controller.select(name, 0., transition=0.)
+        controller.select(name, 0., part=args.comparison_part, transition=0.)
         controllers[name] = controller
     buttons = ExpressionController(names)
     selected = None
@@ -63,7 +65,8 @@ def main():
                 draw.text((20,12),'Expression-specific speech / 24 fps',font=font,fill='#e3edf8')
                 base = poses[i % count]
                 if i < count:
-                    draw.text((20,44),'Same recorded speech in every column; both anatomical views.',font=small,fill='#a8bbd0')
+                    label = ('Neutral eyes; ' if args.comparison_part == 'mouth' else '')
+                    draw.text((20,44),label+'same recorded speech in every column; both anatomical views.',font=small,fill='#a8bbd0')
                     cell_width = width//len(names)
                     for j,name in enumerate(names):
                         weights = controllers[name].sample(i/fps)
@@ -101,7 +104,8 @@ def main():
             poster.paste(sample,(0,i*height))
         poster.save(args.output/'review.png')
     (args.output/'review.json').write_text(json.dumps(dict(
-        fps=fps, frames=2*count, expressions=names, recorded_pose_replay=True,
+        fps=fps, frames=2*count, expressions=names, comparison_part=args.comparison_part,
+        recorded_pose_replay=True,
         external_selections_simulated=True, controller_future_inputs=False),indent=2)+'\n')
     print(movie, flush=True)
 

@@ -125,14 +125,52 @@ class ExpressionTests(unittest.TestCase):
         self.assertNotEqual(c['targets']['expr_happy_open'], c['targets']['expr_happy_round'])
 
     @unittest.skipUnless(RENDER_DEPS, 'Optional renderer dependencies unavailable')
-    def test_front_restraint_applies_to_context_corrections(self):
+    def test_authored_shapes_survive_front_restraint_and_cancel_at_each_endpoint(self):
         from prootface.offscreen import CompiledMesh
         c = rig_fixture()
         mesh = CompiledMesh(c)
-        base = mesh.vertices({'front_motion_scale':0})
-        moved = mesh.vertices({'blend_expr_happy_open':1, 'front_motion_scale':0})
-        full = mesh.vertices({'blend_expr_happy_open':1, 'front_motion_scale':1})
-        self.assertAlmostEqual(float(moved[1,1]-base[1,1]), float(full[1,1]-base[1,1])*.5)
+        rig = ExpressionRig(c)
+        e = ExpressionController(rig.available)
+        e.select('happy', 0, part='mouth', transition=0)
+        for restraint in (0, .8, 1):
+            for phase, lift in (('open',.08), ('round',.01), ('wide',.1)):
+                raw = {'blend_'+phase:1, 'front_motion_scale':restraint}
+                neutral = mesh.vertices(raw)
+                selected = mesh.vertices(rig.compose(raw,e.sample(0)))
+                self.assertAlmostEqual(float(selected[1,1]-neutral[1,1]),lift,places=6)
+
+    @unittest.skipUnless(RENDER_DEPS, 'Optional renderer dependencies unavailable')
+    def test_only_articulation_correction_uses_front_restraint(self):
+        from prootface.offscreen import CompiledMesh
+        c = character_fixture()
+        c['targets']['open'] = dict(indices=[1,2],deltas=[0,-.5,0,0,.1,0])
+        definitions = {'happy':dict(eyes=dict(left='eye_left',right='eye_right'),mouth={
+            phase:dict(sources={'smile':.5},motion_scale=[1,1.2,1])
+            for phase in ('rest','open','round','wide')})}
+        compile_expression_sets(c,definitions)
+        bank = c['expression_sets']['happy']
+        self.assertIn(bank['open_motion'],c['front_targets'])
+        self.assertNotIn(bank['open'],c['front_targets'])
+        rig = ExpressionRig(c)
+        e = ExpressionController(rig.available)
+        e.select('happy',0,transition=0)
+        mesh = CompiledMesh(c)
+        for restraint,expected in ((0,0),(1,-.05)):
+            raw = dict(blend_open=1,front_motion_scale=restraint)
+            delta = mesh.vertices(rig.compose(raw,e.sample(0)))-mesh.vertices(raw)
+            self.assertAlmostEqual(float(delta[1,1]),expected,places=6)
+        del c['targets'][bank['open_motion']]
+        with self.assertRaises(ValueError):
+            ExpressionRig(c)
+
+    def test_curve_only_bank_cannot_silently_replace_authored_mouth_sources(self):
+        c = character_fixture()
+        c['targets']['open'] = dict(indices=[1,2],deltas=[0,-.5,0,0,.1,0])
+        definitions = {'happy':dict(eyes=dict(left='eye_left',right='eye_right'),mouth={
+            phase:dict(sources={},bend=.1)
+            for phase in ('rest','open','round','wide')})}
+        with self.assertRaisesRegex(ValueError,'authored mouth source'):
+            compile_expression_sets(c,definitions)
 
     def test_neutral_preserves_existing_pose_and_closures_disable_all_context_openings(self):
         rig = ExpressionRig(rig_fixture())

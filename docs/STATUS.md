@@ -15,7 +15,8 @@
 
 ## Validation checkpoint
 
-Local core suite: 76 tests passed. Pure LED-map suite: 3 tests passed. Package
+Local core suite: 78 tests passed. Browser geometry suite: 16 tests passed.
+Pure LED-map suite: 3 tests passed. Package
 wheel creation succeeded and includes only the public Python package. EGL tests
 exercise original synthetic geometry, side selection, one mirror, depth and BGR.
 
@@ -59,3 +60,9 @@ weights. New tests cover bank reconstruction, front restraint, contact, blinks,
 interruption, persistence, invalid commands and HTTP selection. Non-neutral
 expressions require a newly compiled private character; geometry and source
 mappings are not distributed by this public repository.
+
+Expression compilation now requires an authored mouth source. Authored shape
+corrections and their rest cancellation remain independent of anterior speech
+restraint; optional articulation scaling uses separate motion targets. Endpoint
+tests cover that separation at multiple restraint values. The review tool keeps
+eyes neutral in the comparison by default so mouth identity can be judged.

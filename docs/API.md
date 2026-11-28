@@ -232,6 +232,10 @@ Its available property always includes neutral. `compose(pose, weights)` adds
 bank corrections to an ordinary Animator pose; use weights from a controller
 configured with that rig's available names. The result remains a flat numeric
 pose, consumable by existing EGL/WebGL sparse blending.
+Banks may additionally reference open_motion, round_motion and wide_motion
+targets. These articulation corrections are distinct from the unrestrained
+authored mouth-shape corrections. Existing banks without motion references
+remain valid. The offline compiler requires a nonzero authored mouth source.
 
 `Application.configure_character(character)` configures bank availability before
 the first tick. The standalone CLI and ROS node do this automatically.

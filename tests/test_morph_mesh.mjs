@@ -40,7 +40,7 @@ test('front restraint follows authored motion locally and preserves rear and exp
                   blendVertices(shape,{blend_smile_left:1,front_motion_scale:1}));
 });
 
-test('expression context targets obey the same anterior restraint as speech',()=>{
+test('explicit front_targets metadata retains its renderer compatibility',()=>{
  const shape={positions:[0,0,0,1,0,0],uvs:[0,0,0,0],parts:[],front_weights:[1,0],
   front_targets:['expr_angry_open'],targets:{
    expr_angry_open:{indices:[0,1],deltas:[0,-1,0,0,-1,0]},
@@ -48,4 +48,15 @@ test('expression context targets obey the same anterior restraint as speech',()=
  const result=blendVertices(shape,{blend_expr_angry_open:1,blend_expr_angry_rest:1,front_motion_scale:.25});
  assert(Math.abs(result[1]+.05)<1e-6);
  assert(Math.abs(result[4]+.8)<1e-6);
+});
+
+test('expression shape cancellation is independent of restrained articulation',()=>{
+ const shape={positions:[0,0,0],uvs:[0,0],parts:[],front_weights:[1],
+  front_targets:['expr_happy_open_motion'],targets:{
+   expr_happy_rest:{indices:[0],deltas:[0,.5,0]},
+   expr_happy_open:{indices:[0],deltas:[0,-.4,0]},
+   expr_happy_open_motion:{indices:[0],deltas:[0,-.2,0]}}};
+ const pose={blend_expr_happy_rest:1,blend_expr_happy_open:1,blend_expr_happy_open_motion:1};
+ assert(Math.abs(blendVertices(shape,{...pose,front_motion_scale:0})[1]-.1)<1e-6);
+ assert(Math.abs(blendVertices(shape,{...pose,front_motion_scale:1})[1]+.1)<1e-6);
 });
